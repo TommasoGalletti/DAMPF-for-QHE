@@ -41,6 +41,7 @@ function steady_state(L)
 
     # reshape → matrice densità
     ρ = reshape(ρ_vec, dim, dim)
+    #ρ = (ρ + ρ') / 2  # Assicura che ρ sia hermitiana
 
     return ρ
 end

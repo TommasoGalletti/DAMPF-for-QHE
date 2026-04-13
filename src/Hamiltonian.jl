@@ -36,6 +36,36 @@ function build_hamiltonian(params)
     return H
 end
 
+function build_total_hamiltonian(params)
+
+    H_e = build_hamiltonian(params)
+    dim_e = size(H_e,1)
+
+    Nv = params.Nv
+    ωv = params.ωv
+    g  = params.g
+
+    a    = vib_annihilation(Nv)
+    adag = vib_creation(Nv)
+
+    I_e = Matrix{ComplexF64}(I, dim_e, dim_e)
+    I_v = Matrix{ComplexF64}(I, Nv, Nv)
+
+    H_v = ωv * (adag * a)
+
+    H_e_ext = kron(H_e, I_v)
+    H_v_ext = kron(I_e, H_v)
+
+    # coupling (SITE BASIS)
+    A_site = zeros(ComplexF64, dim_e, dim_e)
+    A_site[2,3] = 1.0
+    A_site[3,2] = 1.0
+
+    H_ev = g * kron(A_site, (a + adag))
+
+    return H_e_ext + H_v_ext + H_ev
+end
+
 """
 Diagonalizzo (Lindblad is in base degli eccitoni) e ordino eigenstuff:
 ε₁ ≥ ε₂ ≥ ε₃ ≥ ε₀
@@ -54,6 +84,18 @@ function diagonalize_hamiltonian(H)
     states_sorted   = states[:, idx]
 
     return energies_sorted, states_sorted
+end
+
+function vib_annihilation(N)
+    a = zeros(ComplexF64, N, N)
+    for n in 2:N
+        a[n-1, n] = sqrt(n-1)
+    end
+    return a
+end
+
+function vib_creation(N)
+    return vib_annihilation(N)'
 end
 
 end
