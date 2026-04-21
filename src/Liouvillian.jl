@@ -1,6 +1,7 @@
 module Liouvillian
 
 using LinearAlgebra
+using SparseArrays
 using ..Lindblad
 
 export build_liouvillian
@@ -12,9 +13,10 @@ export build_liouvillian
 function commutator_superoperator(H)
 
     dim = size(H,1)
-    I_d = Matrix{ComplexF64}(I, dim, dim)
+    I_d = sparse(I, dim, dim)
+    Hs = sparse(H)
 
-    return -1im * (kron(I_d, H) - kron(transpose(H), I_d))
+    return -1im * (kron(I_d, Hs) - kron(transpose(Hs), I_d))
 end
 
 # =========================
@@ -24,11 +26,12 @@ end
 function dissipator_superoperator(A)
 
     dim = size(A,1)
-    I_d = Matrix{ComplexF64}(I, dim, dim)
+    I_d = sparse(I, dim, dim)
+    As = sparse(A)
 
-    AdagA = A' * A
+    AdagA = As' * As
 
-    term1 = kron(conj(A), A)
+    term1 = kron(conj(As), As)
     term2 = kron(I_d, AdagA)
     term3 = kron(transpose(AdagA), I_d)
 
@@ -40,11 +43,11 @@ end
 # =========================
 
 """
-Costruisce Liouvilliana completa (16x16)
+Build the full Liouvillian superoperator for the given Hamiltonian and jump operators.
 """
 function build_liouvillian(H, jump_operators::Vector{JumpOperator})
 
-    dim = size(H,1)
+    dim = size(H, 1)
     L = commutator_superoperator(H)
 
     for op in jump_operators

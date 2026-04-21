@@ -16,7 +16,7 @@ export population_exciton,
 
 function population_exciton(ρ, U, i)
     ρ_exc = U' * ρ * U
-    return real(ρ_exc[i,i])
+    return real(ρ_exc[i, i])
 end
 
 function current(ρ, U, ΓL, idx_low)
@@ -24,7 +24,7 @@ function current(ρ, U, ΓL, idx_low)
     return ΓL * P_low
 end
 
-function voltage(ρ, U, energies, idx_low, idx_g; kB=1.0, TC)
+function voltage(ρ, U, energies, idx_low, idx_g; kB=0.69503476, TC)
     p_low = population_exciton(ρ, U, idx_low)
     p_g   = population_exciton(ρ, U, idx_g)
 
@@ -38,40 +38,36 @@ end
 # =========================
 
 """
-Popolazione eccitonica tracciando fuori il vibrone
+Exciton population for the two-mode vibronic model,
+tracing out both vibrational subspaces.
 """
 function population_exciton_vib(ρ, U, i, Nv)
 
-    dim_e = size(U,1)
+    dim_e = size(U, 1)
 
-    # reshape → ρ[a,α; b,β]
-    ρ_tensor = reshape(ρ, dim_e, Nv, dim_e, Nv)
+    # reshape -> ρ[a,α,β; b,γ,δ]
+    ρ_tensor = reshape(ρ, dim_e, Nv, Nv, dim_e, Nv, Nv)
 
-    # traccia su vibrazioni
+    # trace over both vibrational modes
     ρ_red = zeros(ComplexF64, dim_e, dim_e)
-
     for α in 1:Nv
-        ρ_red += ρ_tensor[:,α,:,α]
+        for β in 1:Nv
+            ρ_red += ρ_tensor[:, α, β, :, α, β]
+        end
     end
 
-    # torna in exciton basis
     ρ_exc = U' * ρ_red * U
-
-    return real(ρ_exc[i,i])
+    return real(ρ_exc[i, i])
 end
 
-"""
-Corrente vibronica
-"""
+"""Vibronic current."""
 function current_vib(ρ, U, ΓL, idx_low, Nv)
     P_low = population_exciton_vib(ρ, U, idx_low, Nv)
     return ΓL * P_low
 end
 
-"""
-Voltaggio vibronico
-"""
-function voltage_vib(ρ, U, energies, idx_low, idx_g, Nv; kB=1.0, TC)
+"""Vibronic voltage."""
+function voltage_vib(ρ, U, energies, idx_low, idx_g, Nv; kB=0.69503476, TC)
 
     p_low = population_exciton_vib(ρ, U, idx_low, Nv)
     p_g   = population_exciton_vib(ρ, U, idx_g, Nv)

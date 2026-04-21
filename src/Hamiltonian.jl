@@ -2,12 +2,9 @@ module Hamiltonian
 
 using LinearAlgebra
 
-export build_hamiltonian, diagonalize_hamiltonian
+export build_hamiltonian, diagonalize_hamiltonian, build_total_hamiltonian, vib_annihilation, vib_creation
 
-"""
-Hamiltoniana 4x4 - base:
-|g>, |s1>, |s2>, |s3>
-"""
+"""Build the 4x4 electronic Hamiltonian in the basis |g>, |s1>, |s2>, |s3>."""
 function build_hamiltonian(params)
 
     Eg = params.Eg
@@ -39,37 +36,41 @@ end
 function build_total_hamiltonian(params)
 
     H_e = build_hamiltonian(params)
-    dim_e = size(H_e,1)
+    dim_e = size(H_e, 1)
 
     Nv = params.Nv
     ωv = params.ωv
     g  = params.g
 
-    a    = vib_annihilation(Nv)
+    a = vib_annihilation(Nv)
     adag = vib_creation(Nv)
 
     I_e = Matrix{ComplexF64}(I, dim_e, dim_e)
     I_v = Matrix{ComplexF64}(I, Nv, Nv)
 
-    H_v = ωv * (adag * a)
+    n_op = adag * a
+    H_v = ωv * n_op
 
-    H_e_ext = kron(H_e, I_v)
-    H_v_ext = kron(I_e, H_v)
+    # Two local vibrational modes (paper prototype):
+    # Hm = ωv (a1†a1 + a2†a2)
+    H_e_ext = kron(H_e, kron(I_v, I_v))
+    H_v_ext = kron(I_e, kron(H_v, I_v) + kron(I_v, H_v))
 
-    # coupling (SITE BASIS)
-    A_site = zeros(ComplexF64, dim_e, dim_e)
-    A_site[2,3] = 1.0
-    A_site[3,2] = 1.0
+    # Paper-like local vibronic coupling:
+    # HI = g |s1><s1| ⊗ (a1 + a1†) + g |s2><s2| ⊗ (a2 + a2†)
+    X = a + adag
+    P_s1 = zeros(ComplexF64, dim_e, dim_e)
+    P_s2 = zeros(ComplexF64, dim_e, dim_e)
+    P_s1[2, 2] = 1.0
+    P_s2[3, 3] = 1.0
 
-    H_ev = g * kron(A_site, (a + adag))
+    H_ev = g * kron(P_s1, kron(X, I_v)) +
+           g * kron(P_s2, kron(I_v, X))
 
     return H_e_ext + H_v_ext + H_ev
 end
 
-"""
-Diagonalizzo (Lindblad is in base degli eccitoni) e ordino eigenstuff:
-ε₁ ≥ ε₂ ≥ ε₃ ≥ ε₀
-"""
+"""Diagonalize H and return eigenpairs sorted by descending energy."""
 function diagonalize_hamiltonian(H)
 
     eig = eigen(H)
@@ -77,7 +78,7 @@ function diagonalize_hamiltonian(H)
     energies = eig.values
     states   = eig.vectors
 
-    # ordinamento decrescente
+    # descending order
     idx = sortperm(energies, rev=true)
 
     energies_sorted = energies[idx]

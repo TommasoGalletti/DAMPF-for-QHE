@@ -1,18 +1,19 @@
 module Solver
 
 using LinearAlgebra
+using SparseArrays
 
 export steady_state
 
 """
-Costruisce vettore che implementa Tr(ρ)=1 nello spazio vettorializzato
+Build the vectorized trace constraint Tr(ρ)=1.
 """
 function trace_vector(dim)
 
     v = zeros(ComplexF64, dim^2)
 
     for i in 1:dim
-        idx = (i-1)*dim + i  # posizione diagonale in vec
+        idx = (i - 1) * dim + i  # diagonal position in vec(ρ)
         v[idx] = 1.0
     end
 
@@ -20,28 +21,31 @@ function trace_vector(dim)
 end
 
 """
-Risolve Lρ = 0 con vincolo Tr(ρ)=1
+Solve Lρ = 0 with the trace constraint Tr(ρ)=1.
 """
 function steady_state(L)
 
-    dim2 = size(L,1)
+    dim2 = size(L, 1)
     dim  = Int(sqrt(dim2))
 
-    # Copia
+    # Copy before enforcing the trace row constraint
     L_mod = copy(L)
 
     b = zeros(ComplexF64, dim2)
 
-    # Sostituisci ultima riga con condizione di traccia
-    L_mod[end, :] .= trace_vector(dim)
+    # Replace last row with trace condition
+    if issparse(L_mod)
+        L_mod[end, :] = sparse(trace_vector(dim)')
+    else
+        L_mod[end, :] .= trace_vector(dim)
+    end
     b[end] = 1.0
 
-    # Risolvi sistema lineare
+    # Solve linear system
     ρ_vec = L_mod \ b
 
-    # reshape → matrice densità
+    # reshape -> density matrix
     ρ = reshape(ρ_vec, dim, dim)
-    #ρ = (ρ + ρ') / 2  # Assicura che ρ sia hermitiana
 
     return ρ
 end

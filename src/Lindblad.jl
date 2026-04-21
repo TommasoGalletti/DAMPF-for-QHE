@@ -13,7 +13,7 @@ export JumpOperator,
        build_hot_operators_vib,
        build_load_operator_vib,
        build_cold_operators_vib,
-       build_vibrational_damping_operators
+             build_vibrational_damping_operators
 
 # =========================
 # STRUCT
@@ -30,21 +30,19 @@ end
 
 function build_jump_operator(i, j, dim)
     A = zeros(ComplexF64, dim, dim)
-    A[i,j] = 1.0
+    A[i, j] = 1.0
     return A
 end
 
 """
-Trasforma un operatore da site basis a exciton basis.
-Se U contiene gli autovettori di H (colonne), allora A_exc = U' * A_site * U.
+Transform an operator from site basis to exciton basis.
 """
 function transform_to_exciton_basis(A_site, U)
     return U' * A_site * U
 end
 
 """
-Trasforma un operatore da exciton basis a site basis.
-Se U contiene gli autovettori di H (colonne), allora A_site = U * A_exc * U'.
+Transform an operator from exciton basis to site basis.
 """
 function transform_to_site_basis(A_exc, U)
     return U * A_exc * U'
@@ -54,13 +52,9 @@ end
 # VIBRONIC EXTENSION
 # =========================
 
-"""
-Estende operatore elettronico:
-A → A ⊗ I_vib
-"""
 function extend_operator_to_vib(A_e, Nv)
     I_v = Matrix{ComplexF64}(I, Nv, Nv)
-    return kron(A_e, I_v)
+    return kron(A_e, kron(I_v, I_v))
 end
 
 # =========================
@@ -69,7 +63,7 @@ end
 
 function build_hot_operators(U; γH, nH)
 
-    dim = size(U,1)
+    dim = size(U, 1)
 
     A_up_exc   = build_jump_operator(1, dim, dim)
     A_down_exc = build_jump_operator(dim, 1, dim)
@@ -89,7 +83,7 @@ end
 
 function build_load_operator(U; ΓL)
 
-    dim = size(U,1)
+    dim = size(U, 1)
 
     A_exc = build_jump_operator(dim, 3, dim)
     A = transform_to_site_basis(A_exc, U)
@@ -103,7 +97,7 @@ end
 
 function build_cold_operators(U; γC, nC_matrix)
 
-    dim = size(U,1)
+    dim = size(U, 1)
     ops = JumpOperator[]
 
     for i in 1:dim
@@ -111,14 +105,14 @@ function build_cold_operators(U; γC, nC_matrix)
 
             if i != j && i < j
 
-                n = nC_matrix[i,j]
+                n = nC_matrix[i, j]
 
-                # emissione
+                # emission
                 A_exc = build_jump_operator(j, i, dim)
                 A = transform_to_site_basis(A_exc, U)
                 push!(ops, JumpOperator(A, γC * (n + 1)))
 
-                # assorbimento
+                # absorption
                 A_exc_rev = build_jump_operator(i, j, dim)
                 A_rev = transform_to_site_basis(A_exc_rev, U)
                 push!(ops, JumpOperator(A_rev, γC * n))
@@ -171,31 +165,40 @@ function vib_creation(N)
 end
 
 """
-Costruisce i dissipatori termici del modo vibrazionale nel sistema esteso:
-gammaM * (nM + 1) * D[kron(I_e, a)] + gammaM * nM * D[kron(I_e, a_dag)]
+Vibrational thermal damping for two local modes.
 
-Puoi passare direttamente nM oppure (ωv, TM) per calcolarlo come Bose-Einstein.
+Returns 4 jump operators:
+- mode 1 damping/excitation
+- mode 2 damping/excitation
 """
-function build_vibrational_damping_operators(dim_e, Nv; γM, nM=nothing, ωv=nothing, TM=nothing)
+function build_vibrational_damping_operators(dim_e, Nv; γM, nM=nothing, ωv=nothing, TM=nothing, kB=0.69503476)
 
     nM_val = nM
     if nM_val === nothing
         if ωv === nothing || TM === nothing
-            error("Passare nM oppure entrambi ωv e TM.")
+            error("Pass nM directly, or provide both ωv and TM.")
         end
-        nM_val = 1 / (exp(ωv / TM) - 1)
+        nM_val = 1 / (exp(ωv / (kB * TM)) - 1)
     end
 
     I_e = Matrix{ComplexF64}(I, dim_e, dim_e)
+    I_v = Matrix{ComplexF64}(I, Nv, Nv)
     a = vib_annihilation(Nv)
     adag = vib_creation(Nv)
 
-    A_down = kron(I_e, a)
-    A_up = kron(I_e, adag)
+    # mode 1 acts on first vibrational subspace
+    A1_down = kron(I_e, kron(a, I_v))
+    A1_up = kron(I_e, kron(adag, I_v))
+
+    # mode 2 acts on second vibrational subspace
+    A2_down = kron(I_e, kron(I_v, a))
+    A2_up = kron(I_e, kron(I_v, adag))
 
     return [
-        JumpOperator(A_down, γM * (nM_val + 1)),
-        JumpOperator(A_up, γM * nM_val)
+        JumpOperator(A1_down, γM * (nM_val + 1)),
+        JumpOperator(A1_up, γM * nM_val),
+        JumpOperator(A2_down, γM * (nM_val + 1)),
+        JumpOperator(A2_up, γM * nM_val)
     ]
 end
 
