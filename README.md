@@ -9,7 +9,7 @@ Julia implementation of a quantum heat engine model for light-harvesting systems
 
 This repository contains a modular implementation of:
 
-- Electronic Hamiltonian (single-excitation subspace, 3–4 levels)
+- Electronic Hamiltonian (single-excitation subspace, 4 levels)
 - Lindblad master equation for hot bath, cold bath, and load
 - Steady-state and time-dependent dynamics
 - Current, voltage, power, and I‑V / P‑V curves
