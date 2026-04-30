@@ -37,8 +37,8 @@ function default_simulation_params()
         293.0,         # TM
         0.69503476,    # kB in cm^-1/K
         1.239841984e-4,# cm^-1 -> eV
-        -3.0,          # log10(ΓL)_min
-        3.0,           # log10(ΓL)_max
+        -8.0,          # log10(ΓL)_min
+        8.0,           # log10(ΓL)_max
         70             # punti sweep
     )
 end

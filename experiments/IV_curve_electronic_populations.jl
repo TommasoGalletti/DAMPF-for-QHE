@@ -32,25 +32,35 @@ function build_jump_ops(U, nC, γH, nH, γC, ΓL)
     return jump_ops
 end
 
-function pick_significant_indices(n, idx_max_power)
-    idx = Int[]
-
-    for k in [1, Int(round(0.20 * (n - 1) + 1)), idx_max_power, n]
-        k_clamped = clamp(k, 1, n)
-        if !(k_clamped in idx)
-            push!(idx, k_clamped)
-        end
+function pick_significant_indices(ΓL_list, P_list)
+    # Select 4 physically meaningful indices:
+    # 1. Very low ΓL (≈ 10^-8)
+    # 2. Transition point (where P > 50% of P_max)
+    # 3. Maximum power point
+    # 4. Very high ΓL (≈ 10^8)
+    
+    n = length(ΓL_list)
+    idx_low = 1  # ΓL ≈ 10^-8
+    idx_high = n  # ΓL ≈ 10^8
+    
+    idx_max_P = argmax(P_list)  # ΓL that maximizes P
+    
+    # Find transition point: first index where P > 50% of max P
+    P_max = maximum(P_list)
+    idx_transition = findfirst(p -> p > 0.5 * P_max, P_list)
+    if idx_transition === nothing
+        # Fallback: use log-space midpoint between low and max_P
+        idx_transition = Int(round(sqrt(idx_low * idx_max_P)))
     end
-
-    for k in [Int(round(0.40 * (n - 1) + 1)), Int(round(0.60 * (n - 1) + 1)), Int(round(0.80 * (n - 1) + 1))]
-        k_clamped = clamp(k, 1, n)
-        if !(k_clamped in idx)
-            push!(idx, k_clamped)
-        end
-        length(idx) == 4 && break
+    
+    idx = sort(unique([idx_low, idx_transition, idx_max_P, idx_high]))
+    
+    println("\n=== SELECTED ΓL INDICES ===")
+    for i in idx
+        println("idx=$i: ΓL=$(round(ΓL_list[i], sigdigits=3)), log₁₀(ΓL)=$(round(log10(ΓL_list[i]), sigdigits=3)), P=$(round(P_list[i], sigdigits=3))")
     end
-
-    return sort(idx)
+    
+    return idx
 end
 """Estimate the slowest relaxation timescale from the Liouvillian spectrum."""
 
@@ -153,8 +163,7 @@ P_valid  = P_list[valid]
 
 # Il transiente è molto rapido per i tassi scelti (ordine 1e-2 - 1e-1 in unità inverse),
 # quindi una griglia fino a t=400 con pochi punti appare piatta. Usiamo una griglia adattata.
-idx_max_power = argmax(P_list)
-idx_time = pick_significant_indices(length(ΓL_list), idx_max_power)
+idx_time = pick_significant_indices(ΓL_list, P_list)
 
 time_plots = Any[]
 
@@ -212,6 +221,8 @@ for idx in idx_time
     plot!(ps, t_list, pop_t_site[4], lw=2, label="p(s3)")
     push!(time_plots, ps)
 end
+
+p7 = plot(time_plots..., layout=(4,2), size=(1200,1400))
 
 # =========================
 # PLOTS
@@ -280,7 +291,7 @@ plot!(p6, logΓL, pop_site_ss[2], lw=2, label="p(s1)")
 plot!(p6, logΓL, pop_site_ss[3], lw=2, label="p(s2)")
 plot!(p6, logΓL, pop_site_ss[4], lw=2, label="p(s3)")
 
-p7 = plot(time_plots..., layout=(4,2), size=(1200,1400))
+# p7 = plot(time_plots..., layout=(4,2), size=(1200,1400))  # Commented: too many subplots
 
 outdir = joinpath(@__DIR__, "..", "imgs", "electronic", "populations")
 mkpath(outdir)
@@ -288,5 +299,3 @@ mkpath(outdir)
 savefig(p5, joinpath(outdir, "pop_ss_gammaL.png"))
 savefig(p6, joinpath(outdir, "pop_site_ss_gammaL.png"))
 savefig(p7, joinpath(outdir, "pop_time_4gammaL.png"))
-
-plot(p1, p2, p3, p4, p5, p6, p7, layout=(4,2), size=(1300,1800))
