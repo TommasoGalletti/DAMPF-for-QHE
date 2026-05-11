@@ -7,10 +7,72 @@ Julia implementation of a quantum heat engine model for light-harvesting systems
 
 ## Overview
 
-This repository contains a modular implementation of:
+This repository implements a complete quantum heat engine model combining electronic and vibronic dynamics in light-harvesting systems. The model couples electronic transitions to vibrational modes, enabling study of coherent energy transfer mechanisms.
 
-- Electronic Hamiltonian (single-excitation subspace, 4 levels)
-- Lindblad master equation for hot bath, cold bath, and load
-- Steady-state and time-dependent dynamics
-- Current, voltage, power, and I‑V / P‑V curves
-- (Future) Vibronic coupling and DAMPF tensor network extension
+## Features Implemented
+
+### Core Model
+- **Electronic Hamiltonian**: 3-site exciton system with electronic-vibrational coupling
+- **Three thermal baths**: 
+  - Hot bath (fluorescence at temperature $T_H$)
+  - Cold bath (radiative recombination at temperature $T_C$)
+  - Load (dissipative channel with tunable coupling $\Gamma_L$)
+- **Lindblad master equation**: Dynamics in the single-excitation subspace
+- **Steady-state solver**: Efficiently computes equilibrium populations and observables
+
+### Vibronic Coupling
+- **Two local vibrational modes** with frequency $\omega_v$
+- **Electronic-vibrational coupling parameter** $g$ (tunable: $g=0$ electronic-only, $g=55\,\text{cm}^{-1}$ strong coupling)
+- **Full Hilbert space dynamics**: Electronic + vibrational degrees of freedom
+
+### Observables & Analysis
+- **I-V characteristic curves**: Current vs. load voltage across 14 orders of magnitude in $\Gamma_L$
+- **Electronic population distributions**: Steady-state excitation probabilities
+- **Power output**: $P(\Gamma_L)$ analysis and optimal load conditions
+- **Vibrational populations**: Thermal occupations at different coupling strengths
+
+## Results
+
+### Electronic-Only System
+- Computed I-V curves for purely electronic transport
+- Identified optimal load voltage for maximum power extraction
+- Characterized steady-state populations across the exciton network
+
+### Vibronic Coupling Effects
+- Analyzed impact of electron-vibration coupling ($g=0$ vs. $g=55\,\text{cm}^{-1}$)
+- Generated population dynamics with 4-5 vibrational modes
+- Compared coherent vs. incoherent transport regimes
+- Generated comparative visualizations
+
+## Project Structure
+
+```
+src/
+  ├─ Hamiltonian.jl      # Electronic and vibronic Hamiltonian construction
+  ├─ Lindblad.jl         # Jump operators and dissipation channels
+  ├─ Liouvillian.jl      # Liouvillian superoperator and time evolution
+  ├─ Solver.jl           # Steady-state solver
+  └─ Observables.jl      # Physical observables (current, power, populations)
+
+config/
+  └─ parameters.jl       # Physical constants and default parameters
+
+experiments/
+  ├─ IV_curve_electronic_populations.jl      # Electronic I-V + populations
+  ├─ IV_curve_vib.jl                         # Vibronic I-V (main analysis)
+  ├─ IV_curve_vib_test.jl                    # Convergence & numerical tests
+  └─ IV_curve2.jl                            # Electronic configuration
+
+imgs/
+  ├─ electronic/         # Electronic transport results
+  └─ vibrational/        # Vibronic coupling results (g=0, g=55)
+```
+
+
+## Parameters
+
+All physical parameters are defined in `config/parameters.jl`:
+- Exciton transition energies and couplings (cm⁻¹)
+- Thermal bath properties: temperatures ($T_H$, $T_C$), decay rates ($\gamma_H$, $\gamma_C$)
+- Vibrational frequency ($\omega_v$) and max mode number ($N_v$)
+- Load coupling sweep: $\Gamma_L \in [10^{-8}, 10^{8}]$ cm⁻¹ (70 points)
