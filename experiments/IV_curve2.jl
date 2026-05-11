@@ -147,6 +147,7 @@ idx_max_in_sorted = argmax(P_plot)
 V_max_sorted = V_plot[idx_max_in_sorted]
 P_max_sorted = P_plot[idx_max_in_sorted]
 I_max_sorted = I_plot[idx_max_in_sorted]
+P_max_label = round(P_max_sorted, sigdigits=3)
 
 # Scatter on current axis (left y-axis)
 scatter!(p_iv, [V_max_sorted], [I_max_sorted],
@@ -160,7 +161,7 @@ scatter!(p_twin, [V_max_sorted], [P_max_sorted],
 
 # Add text annotation with ΓL value
 annotate!(p_iv, V_max_sorted * 0.98, I_max_sorted * 1.15,
-    text("Max P\nΓL=$(round(ΓL_max_P, sigdigits=3))", 9, :red, :center)
+    text("Max P = $(P_max_label)\nΓL=$(round(ΓL_max_P, sigdigits=3))", 9, :red, :center)
 )
 
 savefig(p_iv, joinpath(outdir, "power_and_current_vs_voltage.png"))

@@ -42,20 +42,28 @@ Exciton population for the two-mode vibronic model,
 tracing out both vibrational subspaces.
 """
 function population_exciton_vib(ρ, U, i, Nv)
-
     dim_e = size(U, 1)
-
-    # reshape -> ρ[a,α,β; b,γ,δ]
-    ρ_tensor = reshape(ρ, dim_e, Nv, Nv, dim_e, Nv, Nv)
-
-    # trace over both vibrational modes
+    
+    # Trace out both vibrational modes.
+    # Basis ordering matches build_total_hamiltonian: |e> ⊗ |v1> ⊗ |v2>.
+    # Global index: idx = (e-1)*Nv^2 + (v1-1)*Nv + v2.
     ρ_red = zeros(ComplexF64, dim_e, dim_e)
-    for α in 1:Nv
-        for β in 1:Nv
-            ρ_red += ρ_tensor[:, α, β, :, α, β]
+    for e1 in 1:dim_e
+        for e2 in 1:dim_e
+            for v1 in 1:Nv
+                for v2 in 1:Nv
+                    idx1 = (e1 - 1) * Nv * Nv + (v1 - 1) * Nv + v2
+                    idx2 = (e2 - 1) * Nv * Nv + (v1 - 1) * Nv + v2
+                    ρ_red[e1, e2] += ρ[idx1, idx2]
+                end
+            end
         end
     end
-
+    
+    # DEBUG: check ρ_red 
+    # println("[DEBUG] population_exciton_vib: sum(abs(ρ_red)) = ", sum(abs.(ρ_red)))
+    # println("[DEBUG] ρ_red[1,1] = ", ρ_red[1,1])
+    
     ρ_exc = U' * ρ_red * U
     return real(ρ_exc[i, i])
 end

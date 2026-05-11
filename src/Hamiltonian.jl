@@ -51,12 +51,12 @@ function build_total_hamiltonian(params)
     n_op = adag * a
     H_v = ωv * n_op
 
-    # Two local vibrational modes (paper prototype):
+    # Two local vibrational modes:
     # Hm = ωv (a1†a1 + a2†a2)
     H_e_ext = kron(H_e, kron(I_v, I_v))
     H_v_ext = kron(I_e, kron(H_v, I_v) + kron(I_v, H_v))
 
-    # Paper-like local vibronic coupling:
+    # local vibronic coupling:
     # HI = g |s1><s1| ⊗ (a1 + a1†) + g |s2><s2| ⊗ (a2 + a2†)
     X = a + adag
     P_s1 = zeros(ComplexF64, dim_e, dim_e)
