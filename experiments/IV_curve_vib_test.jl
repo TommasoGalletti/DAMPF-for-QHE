@@ -12,42 +12,60 @@ using .Solver
 using .Observables
 
 using Plots
+
 default(fontfamily="Computer Modern", framestyle=:box, dpi=300)
 
-# Lightweight vibronic test.
-# The goal is to keep the same physical pipeline as IV_curve_vib.jl,
-# but reduce the computational cost enough to run quickly.
+"""Save raw and normalized observables to CSV for later comparisons."""
+function save_observables_csv(filepath, ΓL_list, I_list, V_list, P_list, γH, cm1_to_ev)
+    logΓL = log10.(ΓL_list)
+    V_list_eV = cm1_to_ev .* V_list
+    I_list_norm = I_list ./ γH
+    P_list_norm = (I_list .* V_list_eV) ./ γH
+
+    mkpath(dirname(filepath))
+    open(filepath, "w") do io
+        println(io, "GammaL,log10_GammaL,I_raw,V_cm1,P_raw,V_eV,I_norm,P_norm")
+        for i in eachindex(ΓL_list)
+            println(
+                io,
+                string(
+                    ΓL_list[i], ",",
+                    logΓL[i], ",",
+                    I_list[i], ",",
+                    V_list[i], ",",
+                    P_list[i], ",",
+                    V_list_eV[i], ",",
+                    I_list_norm[i], ",",
+                    P_list_norm[i],
+                ),
+            )
+        end
+    end
+end
+
+# ------------------------------
+# Model and simulation setup
+# ------------------------------
 
 params_full = default_params()
-sim_full = default_simulation_params()
+sim = default_simulation_params()
 
-# Use same simulation parameters as IV_curve2.jl for direct comparison
-sim = sim_full
-
-# Conversion factor early (used in loop prints)
 CM1_TO_EV = sim.cm1_to_ev
-
-# List of g values to test (g=0 and g=55 as requested)
 g_list = [0.0, 55.0]
+Nv_list = [4, 5]
 
-for g_val in g_list
-
-    # Build params for this g (with reduced vibrational Hilbert-space truncation).
-    # This is the only size reduction in the test relative to the final script.
-    local params = Params(
+for Nv_test in Nv_list, g_val in g_list
+    params = Params(
         params_full.Eg,
         params_full.E,
         params_full.J,
         params_full.ωv,
-        5,
-        g_val
+        Nv_test,
+        g_val,
     )
 
-    # Electronic sector used to build the vibronic model and observables.
     H_e = Hamiltonian.build_hamiltonian(params)
     energies_e, U_e = Hamiltonian.diagonalize_hamiltonian(H_e)
-
-    # Full vibronic Hamiltonian: electronic + two local vibrational modes + local coupling.
     H_total = Hamiltonian.build_total_hamiltonian(params)
 
     dim_e = size(H_e, 1)
@@ -67,7 +85,7 @@ for g_val in g_list
 
     nC = cold_occupations(energies_e, TC; kB=kB)
 
-    println("=== LIGHTWEIGHT VIBRONIC TEST (g=$(g_val)) ===")
+    println("=== LIGHTWEIGHT VIBRONIC TEST (Nv=$(Nv_test), g=$(g_val)) ===")
     println("Electronic dimension: $dim_e")
     println("Vibrational dimension: $dim_v")
     println("Total dimension: $dim_total")
@@ -87,7 +105,14 @@ for g_val in g_list
         hot_ops_vib = build_hot_operators_vib(U_e; γH=γH, nH=nH, Nv=dim_v)
         cold_ops_vib = build_cold_operators_vib(U_e; γC=γC, nC_matrix=nC, Nv=dim_v)
         load_op_vib = build_load_operator_vib(U_e; ΓL=ΓL, Nv=dim_v)
-        vib_damp_ops = build_vibrational_damping_operators(dim_e, dim_v; γM=γM, ωv=params.ωv, TM=TM, kB=kB)
+        vib_damp_ops = build_vibrational_damping_operators(
+            dim_e,
+            dim_v;
+            γM=γM,
+            ωv=params.ωv,
+            TM=TM,
+            kB=kB,
+        )
 
         jump_ops = JumpOperator[]
         append!(jump_ops, hot_ops_vib)
@@ -99,7 +124,16 @@ for g_val in g_list
         ρ_ss = steady_state(L)
 
         I = Observables.current_vib(ρ_ss, U_e, ΓL, idx_low, dim_v)
-        V = Observables.voltage_vib(ρ_ss, U_e, energies_e, idx_low, idx_g, dim_v; kB=kB, TC=TC)
+        V = Observables.voltage_vib(
+            ρ_ss,
+            U_e,
+            energies_e,
+            idx_low,
+            idx_g,
+            dim_v;
+            kB=kB,
+            TC=TC,
+        )
         P = Observables.power(I, V)
 
         push!(I_list, I)
@@ -113,7 +147,9 @@ for g_val in g_list
 
     println("\n=== SAMPLE OUTPUT ===")
     for i in 1:3:length(ΓL_list)
-        println("ΓL=$(ΓL_list[i]) | I=$(I_list[i]) | V=$(V_list[i]) cm^-1 ($(V_list[i] * CM1_TO_EV) eV) | P=$(P_list[i])")
+        println(
+            "ΓL=$(ΓL_list[i]) | I=$(I_list[i]) | V=$(V_list[i]) cm^-1 ($(V_list[i] * CM1_TO_EV) eV) | P=$(P_list[i])",
+        )
     end
 
     logΓL = log10.(ΓL_list)
@@ -134,36 +170,44 @@ for g_val in g_list
     println("\n=== MAXIMUM POWER ===")
     println("Max P = $P_max eV at V = $V_at_max_P V (ΓL = $ΓL_max_P)")
 
-    p1 = plot(logΓL, I_list,
+    p1 = plot(
+        logΓL,
+        I_list;
         xlabel="log10(ΓL)",
         ylabel="Current I",
-        title="Current vs ΓL (lightweight vibronic, g=$(g_val))",
+        title="Current vs ΓL (lightweight vibronic, Nv=$(Nv_test), g=$(g_val))",
         lw=2,
-        legend=false
+        legend=false,
     )
 
-    p2 = plot(logΓL, V_list_eV,
+    p2 = plot(
+        logΓL,
+        V_list_eV;
         xlabel="log10(ΓL)",
         ylabel="Voltage V (eV)",
-        title="Voltage vs ΓL (lightweight vibronic, g=$(g_val))",
+        title="Voltage vs ΓL (lightweight vibronic, Nv=$(Nv_test), g=$(g_val))",
         lw=2,
-        legend=false
+        legend=false,
     )
-    hline!(p2, [0.0], linestyle=:dash)
+    hline!(p2, [0.0]; linestyle=:dash)
 
-    p3 = plot(logΓL, P_list,
+    p3 = plot(
+        logΓL,
+        P_list;
         xlabel="log10(ΓL)",
         ylabel="Power P",
-        title="Power vs ΓL (lightweight vibronic, g=$(g_val))",
+        title="Power vs ΓL (lightweight vibronic, Nv=$(Nv_test), g=$(g_val))",
         lw=2,
-        legend=false
+        legend=false,
     )
-    hline!(p3, [0.0], linestyle=:dash)
+    hline!(p3, [0.0]; linestyle=:dash)
 
     imax = argmax(P_list)
-    scatter!(p3, [logΓL[imax]], [P_list[imax]], markersize=8, color=:red, label="Max power")
+    scatter!(p3, [logΓL[imax]], [P_list[imax]]; markersize=8, color=:red, label="Max power")
 
-    p_iv = plot(V_plot, I_plot,
+    p_iv = plot(
+        V_plot,
+        I_plot;
         xlabel="Voltage (V)",
         ylabel="Current (1/γ_H)",
         title="I(V), P(V) (g=$(g_val))",
@@ -172,10 +216,13 @@ for g_val in g_list
         guidefontsize=16,
         tickfontsize=13,
         titlefontsize=18,
-        legend=false
+        legend=false,
     )
 
-    p_twin = plot!(twinx(), V_plot, P_plot,
+    p_twin = plot!(
+        twinx(),
+        V_plot,
+        P_plot;
         ylabel="Power (eV)",
         lw=2,
         color=:red,
@@ -184,7 +231,7 @@ for g_val in g_list
         foreground_color_axis=:red,
         guidefontsize=16,
         tickfontsize=13,
-        legend=false
+        legend=false,
     )
 
     idx_max_in_sorted = argmax(P_plot)
@@ -193,25 +240,62 @@ for g_val in g_list
     I_max_sorted = I_plot[idx_max_in_sorted]
     P_max_label = round(P_max_sorted, sigdigits=3)
 
-    scatter!(p_iv, [V_max_sorted], [I_max_sorted],
-        markersize=8, color=:black, markerstrokewidth=2, markerstrokecolor=:darkgray
+    scatter!(
+        p_iv,
+        [V_max_sorted],
+        [I_max_sorted];
+        markersize=8,
+        color=:black,
+        markerstrokewidth=2,
+        markerstrokecolor=:darkgray,
     )
 
-    scatter!(p_twin, [V_max_sorted], [P_max_sorted],
-        markersize=8, color=:red, markerstrokewidth=2, markerstrokecolor=:darkred
+    scatter!(
+        p_twin,
+        [V_max_sorted],
+        [P_max_sorted];
+        markersize=8,
+        color=:red,
+        markerstrokewidth=2,
+        markerstrokecolor=:darkred,
     )
 
-    annotate!(p_iv, V_max_sorted * 0.98, I_max_sorted * 1.15,
-        text("Max P = $(P_max_label)\nΓL=$(round(ΓL_max_P, sigdigits=3))", 9, :red, :center)
+    annotate!(
+        p_iv,
+        V_max_sorted * 0.98,
+        I_max_sorted * 1.15,
+        text("Max P = $(P_max_label)\nΓL=$(round(ΓL_max_P, sigdigits=3))", 9, :red, :center),
     )
 
-    outdir = joinpath(@__DIR__, "..", "imgs", "vibrational", "test", "5_modes", "g_$(Int(round(g_val)))")
+    outdir = joinpath(
+        @__DIR__,
+        "..",
+        "imgs",
+        "vibrational",
+        "test",
+        "$(Nv_test)_modes",
+        "g_$(Int(round(g_val)))",
+    )
     mkpath(outdir)
 
     savefig(p1, joinpath(outdir, "i_gammaL_g_$(Int(round(g_val))).png"))
     savefig(p2, joinpath(outdir, "v_gammaL_g_$(Int(round(g_val))).png"))
     savefig(p3, joinpath(outdir, "p_gammaL_g_$(Int(round(g_val))).png"))
     savefig(p_iv, joinpath(outdir, "power_and_current_vs_voltage_vibronic_test_g_$(Int(round(g_val))).png"))
+
+    data_outdir = joinpath(
+        @__DIR__,
+        "..",
+        "outputs",
+        "numeric_vectors",
+        "vibrational",
+        "test",
+        "$(Nv_test)_modes",
+        "g_$(Int(round(g_val)))",
+    )
+    data_filepath = joinpath(data_outdir, "observables_vs_gammaL.csv")
+    save_observables_csv(data_filepath, ΓL_list, I_list, V_list, P_list, γH, CM1_TO_EV)
+    println("Saved numeric vectors: $data_filepath")
 
     display(p_iv)
 end
