@@ -119,9 +119,9 @@ outdir = joinpath(@__DIR__, "..", "imgs", "electronic")
 mkpath(outdir)
 
 p_iv = plot(V_plot, I_plot,
-    xlabel="Voltage (V)",
-    ylabel="Current (1/γ_H)",
-    title="I(V), P(V)",
+    xlabel="Output voltage V (eV)",
+    ylabel="Current I_L/(eγ_H)",
+    title="Electronic Simulation - I(V), P(V)",
     lw=2,
     color=:black,
     guidefontsize=16,
@@ -131,7 +131,7 @@ p_iv = plot(V_plot, I_plot,
 )
 
 p_twin = plot!(twinx(), V_plot, P_plot,
-    ylabel="Power (eV)",
+    ylabel="Output power P (eV)",
     lw=2,
     color=:red,
     guidefontcolor=:red,
@@ -160,8 +160,10 @@ scatter!(p_twin, [V_max_sorted], [P_max_sorted],
 )
 
 # Add text annotation with ΓL value
-annotate!(p_iv, V_max_sorted * 0.98, I_max_sorted * 1.15,
-    text("Max P = $(P_max_label)\nΓL=$(round(ΓL_max_P, sigdigits=3))", 9, :red, :center)
+I_span = maximum(I_plot) - minimum(I_plot)
+I_annot = minimum(I_plot) + 0.10 * I_span
+annotate!(p_iv, V_max_sorted * 0.70, I_annot,
+    text("max P = $(P_max_label) eV\nV = $(round(V_max_sorted, sigdigits=4)) eV\nΓL = $(round(ΓL_max_P, sigdigits=3))", 9, :red, :left)
 )
 
 savefig(p_iv, joinpath(outdir, "power_and_current_vs_voltage.png"))

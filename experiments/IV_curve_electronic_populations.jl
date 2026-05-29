@@ -141,6 +141,10 @@ for ΓL in ΓL_list
     end
 end
 
+V_list_V = CM1_TO_EV .* V_list
+I_list_paper = I_list ./ γH
+P_list_paper = (I_list .* V_list_V) ./ γH
+
 println("\n=== SAMPLE OUTPUT ===")
 for i in 1:5:length(ΓL_list)
     println("ΓL=$(ΓL_list[i]) | I=$(I_list[i]) | V=$(V_list[i]) | P=$(P_list[i])")
@@ -155,7 +159,7 @@ valid = V_list .> 0
 
 ΓL_valid = ΓL_list[valid]
 logΓL_valid = log10.(ΓL_valid)
-P_valid  = P_list[valid]
+P_valid_paper = P_list_paper[valid]
 
 ρ0 = zeros(ComplexF64, dim, dim)
 ρ0[1,1] = 1.0
@@ -197,7 +201,7 @@ for idx in idx_time
         pop_t[1],
         xlabel="t",
         ylabel="Population",
-        title="Popolazioni nel tempo (ΓL=$(round(ΓL, sigdigits=3)), τ≈$(round(τ_relax, sigdigits=3)))",
+        title="Electronic Simulation - exciton pop.(t) (ΓL=$(round(ΓL, sigdigits=3)), τ≈$(round(τ_relax, sigdigits=3)))",
         lw=2,
         label="p(ε1)"
     )
@@ -212,7 +216,7 @@ for idx in idx_time
         pop_t_site[1],
         xlabel="t (arb. units)",
         ylabel="Population",
-        title="Popolazioni siti nel tempo (ΓL=$(round(ΓL, sigdigits=3)))",
+        title="Electronic Simulation - site pop.(t) (ΓL=$(round(ΓL, sigdigits=3)))",
         lw=2,
         label="p(g)"
     )
@@ -228,41 +232,50 @@ p7 = plot(time_plots..., layout=(4,2), size=(1200,1400))
 # PLOTS
 # =========================
 
-p1 = plot(logΓL, I_list,
+p1 = plot(logΓL, I_list_paper,
     xlabel="log10(ΓL)",
-    ylabel="Current I (arb. units)",
-    title="I vs ΓL",
+    ylabel="Current I_L/(eγ_H)",
+    title="Electronic Simulation - I(ΓL)",
     lw=2,
-    legend=false
+    legend=false,
+    xlims=(-6, 6),
 )
 
-p2 = plot(logΓL, CM1_TO_EV .* V_list,
+p2 = plot(logΓL, V_list_V,
     xlabel="log10(ΓL)",
     ylabel="Voltage V (eV)",
-    title="V vs ΓL (eV)",
+    title="Electronic Simulation - V(ΓL)",
     lw=2,
-    legend=false
+    legend=false,
+    xlims=(-6, 6),
 )
 hline!(p2, [0.0], linestyle=:dash)
 
-p3 = plot(logΓL, P_list,
+p3 = plot(logΓL, P_list_paper,
     xlabel="log10(ΓL)",
-    ylabel="Power P (arb. units)",
-    title="P vs ΓL",
+    ylabel="Output power P (eV)",
+    title="Electronic Simulation - P(ΓL)",
     lw=2,
-    legend=false
+    legend=false,
+    xlims=(-6, 6),
 )
 hline!(p3, [0.0], linestyle=:dash)
 
-imax = argmax(P_list)
-scatter!(p3, [logΓL[imax]], [P_list[imax]], markersize=8, color=:red, label="Max power")
+imax = argmax(P_list_paper)
+scatter!(p3, [logΓL[imax]], [P_list_paper[imax]], markersize=8, color=:red, label=false)
+P_span = maximum(P_list_paper) - minimum(P_list_paper)
+P_annot = minimum(P_list_paper) + 0.12 * P_span
+annotate!(p3, minimum(logΓL) + 1.0, P_annot,
+    text("max P = $(round(P_list_paper[imax], sigdigits=3)) eV\nlog10(ΓL) = $(round(logΓL[imax], sigdigits=3))", 9, :red, :left)
+)
 
-p4 = plot(logΓL_valid, P_valid,
+p4 = plot(logΓL_valid, P_valid_paper,
     xlabel="log10(ΓL)",
-    ylabel="Power P (arb. units)",
-    title="P vs ΓL (V > 0)",
+    ylabel="Output power P (eV)",
+    title="Electronic Simulation - P(ΓL) with V > 0",
     lw=2,
-    legend=false
+    legend=false,
+    xlims=(-6, 6),
 )
 
 p5 = plot(
@@ -270,9 +283,10 @@ p5 = plot(
     pop_ss[1],
     xlabel="log10(ΓL)",
     ylabel="Steady-state populations",
-    title="Popolazioni all'equilibrio vs ΓL",
+    title="Electronic Simulation - steady-state exciton populations",
     lw=2,
-    label="p(ε1)"
+    label="p(ε1)",
+    xlims=(-6, 6),
 )
 plot!(p5, logΓL, pop_ss[2], lw=2, label="p(ε2)")
 plot!(p5, logΓL, pop_ss[3], lw=2, label="p(ε3)")
@@ -283,9 +297,10 @@ p6 = plot(
     pop_site_ss[1],
     xlabel="log10(ΓL)",
     ylabel="Steady-state populations",
-    title="Popolazioni siti all'equilibrio vs ΓL",
+    title="Electronic Simulation - steady-state site populations",
     lw=2,
-    label="p(g)"
+    label="p(g)",
+    xlims=(-6, 6),
 )
 plot!(p6, logΓL, pop_site_ss[2], lw=2, label="p(s1)")
 plot!(p6, logΓL, pop_site_ss[3], lw=2, label="p(s2)")
@@ -295,6 +310,13 @@ plot!(p6, logΓL, pop_site_ss[4], lw=2, label="p(s3)")
 
 outdir = joinpath(@__DIR__, "..", "imgs", "electronic", "populations")
 mkpath(outdir)
+
+outdir_gamma = joinpath(@__DIR__, "..", "imgs", "electronic")
+mkpath(outdir_gamma)
+
+savefig(p1, joinpath(outdir_gamma, "i_gammaL.png"))
+savefig(p2, joinpath(outdir_gamma, "v_gammaL.png"))
+savefig(p3, joinpath(outdir_gamma, "p_gammaL.png"))
 
 savefig(p5, joinpath(outdir, "pop_ss_gammaL.png"))
 savefig(p6, joinpath(outdir, "pop_site_ss_gammaL.png"))
