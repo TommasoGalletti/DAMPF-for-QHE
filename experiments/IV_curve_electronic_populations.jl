@@ -19,10 +19,8 @@ default(fontfamily="Computer Modern", framestyle=:box, dpi=300)
 # MODEL SETUP
 # =========================
 
-function build_jump_ops(U, nC, γH, nH, γC, ΓL)
-    hot_ops  = build_hot_operators(U; γH=γH, nH=nH)
-    cold_ops = build_cold_operators(U; γC=γC, nC_matrix=nC)
-    load_op  = build_load_operator(U; ΓL=ΓL)
+function build_jump_ops(hot_ops, cold_ops, U, ΓL)
+    load_op = build_load_operator(U; ΓL=ΓL)
 
     jump_ops = JumpOperator[]
     append!(jump_ops, hot_ops)
@@ -30,6 +28,19 @@ function build_jump_ops(U, nC, γH, nH, γC, ΓL)
     push!(jump_ops, load_op)
 
     return jump_ops
+end
+
+function exciton_populations(ρ, U)
+    ρ_exc = U' * ρ * U
+    return real.(diag(ρ_exc))
+end
+
+function propagate_state_spectral(F, coeffs, t, dim)
+    ρ_vec = F.vectors * (exp.(F.values .* t) .* coeffs)
+    ρ = reshape(ρ_vec, dim, dim)
+    ρ = (ρ + ρ') / 2
+    ρ ./= real(tr(ρ))
+    return ρ
 end
 
 function pick_significant_indices(ΓL_list, P_list)
@@ -65,7 +76,7 @@ end
 """Estimate the slowest relaxation timescale from the Liouvillian spectrum."""
 
 function relaxation_time(L)
-    vals = eigvals(Matrix(L))
+    vals = eigvals(L)
     revals = real.(vals)
     candidates = [x for x in revals if x < -1e-9]
     slowest = maximum(candidates)
@@ -104,6 +115,8 @@ kB = sim.kB
 CM1_TO_EV = sim.cm1_to_ev
 
 nC = cold_occupations(energies, TC; kB=kB)
+hot_ops = build_hot_operators(U; γH=γH, nH=nH)
+cold_ops = build_cold_operators(U; γC=γC, nC_matrix=nC)
 
 println("nC max = ", maximum(nC))
 println("nC min (nonzero) = ", minimum(nC[nC .> 0]))
@@ -122,13 +135,16 @@ pop_ss = [Float64[] for _ in 1:dim]
 pop_site_ss = [Float64[] for _ in 1:dim]
 
 for ΓL in ΓL_list
-    jump_ops = build_jump_ops(U, nC, γH, nH, γC, ΓL)
+    jump_ops = build_jump_ops(hot_ops, cold_ops, U, ΓL)
     L = build_liouvillian(H, jump_ops)
 
     ρ_ss = steady_state(L)
+    ρ_ss_exc = exciton_populations(ρ_ss, U)
 
-    I = Observables.current(ρ_ss, U, ΓL, idx_low)
-    V = Observables.voltage(ρ_ss, U, energies, idx_low, idx_g; kB=kB, TC=TC)
+    p_low = ρ_ss_exc[idx_low]
+    p_g = ρ_ss_exc[idx_g]
+    I = ΓL * p_low
+    V = (energies[idx_low] - energies[idx_g]) + kB * TC * log(p_low / p_g)
     P = Observables.power(I, V)
 
     push!(I_list, I)
@@ -136,8 +152,8 @@ for ΓL in ΓL_list
     push!(P_list, P)
 
     for i in 1:dim
-        push!(pop_ss[i], population_exciton(ρ_ss, U, i))
-        push!(pop_site_ss[i], population_site(ρ_ss, i))
+        push!(pop_ss[i], ρ_ss_exc[i])
+        push!(pop_site_ss[i], real(ρ_ss[i, i]))
     end
 end
 
@@ -173,9 +189,11 @@ time_plots = Any[]
 
 for idx in idx_time
     ΓL = ΓL_list[idx]
-    jump_ops = build_jump_ops(U, nC, γH, nH, γC, ΓL)
+    jump_ops = build_jump_ops(hot_ops, cold_ops, U, ΓL)
     L = build_liouvillian(H, jump_ops)
     L_dense = Matrix(L)
+    spectral_L = eigen(L_dense)
+    coeffs = spectral_L.vectors \ ρ0_vec
 
     τ_relax = relaxation_time(L_dense)
     t_max = max(0.2, 8.0 * τ_relax)
@@ -185,14 +203,12 @@ for idx in idx_time
     pop_t_site = [Float64[] for _ in 1:dim]
 
     for t in t_list
-        ρ_t_vec = exp(L_dense * t) * ρ0_vec
-        ρ_t = reshape(ρ_t_vec, dim, dim)
-        ρ_t = (ρ_t + ρ_t') / 2
-        ρ_t ./= real(tr(ρ_t))
+        ρ_t = propagate_state_spectral(spectral_L, coeffs, t, dim)
+        ρ_t_exc = exciton_populations(ρ_t, U)
 
         for i in 1:dim
-            push!(pop_t[i], population_exciton(ρ_t, U, i))
-            push!(pop_t_site[i], population_site(ρ_t, i))
+            push!(pop_t[i], ρ_t_exc[i])
+            push!(pop_t_site[i], real(ρ_t[i, i]))
         end
     end
 
@@ -308,10 +324,10 @@ plot!(p6, logΓL, pop_site_ss[4], lw=2, label="p(s3)")
 
 # p7 = plot(time_plots..., layout=(4,2), size=(1200,1400))  # Commented: too many subplots
 
-outdir = joinpath(@__DIR__, "..", "imgs", "electronic", "populations")
+outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "electronic", "populations")
 mkpath(outdir)
 
-outdir_gamma = joinpath(@__DIR__, "..", "imgs", "electronic")
+outdir_gamma = joinpath(@__DIR__, "..", "outputs", "imgs", "electronic")
 mkpath(outdir_gamma)
 
 savefig(p1, joinpath(outdir_gamma, "i_gammaL.png"))

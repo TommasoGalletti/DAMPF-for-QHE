@@ -49,6 +49,7 @@ end
 
 params_base = default_params()
 sim = default_simulation_params()
+Nv_tag = "$(params_base.Nv)_modes"
 
 H_e = Hamiltonian.build_hamiltonian(params_base)
 energies_e, U_e = Hamiltonian.diagonalize_hamiltonian(H_e)
@@ -207,7 +208,7 @@ for g_val in g_list
     imax = argmax(P_list)
     scatter!(p3, [logΓL[imax]], [P_list[imax]]; markersize=8, color=:red, label="Max power")
 
-    outdir = joinpath(@__DIR__, "..", "imgs", "vibrational", "g_$(Int(round(g_val)))")
+    outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "vibrational", Nv_tag, "g_$(Int(round(g_val)))")
     mkpath(outdir)
 
     savefig(p1, joinpath(outdir, "i_gammaL.png"))
@@ -271,9 +272,9 @@ for g_val in g_list
 
     annotate!(
         p_iv,
-        V_max_sorted * 0.98,
-        I_max_sorted * 1.15,
-        text("Max P = $(P_max_label)\nΓL=$(round(ΓL_max_P, sigdigits=3))", 9, :red, :center),
+        minimum(V_plot) + 0.12 * (maximum(V_plot) - minimum(V_plot)),
+        minimum(I_plot) + 0.12 * (maximum(I_plot) - minimum(I_plot)),
+        text("Max P = $(P_max_label)\nΓL=$(round(ΓL_max_P, sigdigits=3))", 9, :red, :left),
     )
 
     savefig(p_iv, joinpath(outdir, "power_and_current_vs_voltage_vibronic.png"))
@@ -285,7 +286,7 @@ for g_val in g_list
         "numeric_vectors",
         "vibrational",
         "full",
-        "6_modes",
+        Nv_tag,
         "g_$(Int(round(g_val)))",
     )
     data_filepath = joinpath(data_outdir, "observables_vs_gammaL.csv")

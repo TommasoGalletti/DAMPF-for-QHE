@@ -115,7 +115,7 @@ end
 println("\n=== MAXIMUM POWER ===")
 println("Max P = $P_max eV at V = $V_at_max_P V (ΓL = $ΓL_max_P)")
 
-outdir = joinpath(@__DIR__, "..", "imgs", "electronic")
+outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "electronic")
 mkpath(outdir)
 
 p_iv = plot(V_plot, I_plot,
