@@ -1,26 +1,13 @@
-module DAMPFNumerics
+module DampfNumerical
 
-export DampfNumerics, default_numerics
+export DampfNumericalParams, default_numerical_params
 
-"""
-Numerical parameters for the tensor-network solver.
-
-- `dt`: time step
-- `t_final`: final simulation time
-- `chi_max`: maximum bond dimension χ
-- `svd_tol`: truncation tolerance for SVD
-- `save_every`: save every N steps
-"""
-struct DampfNumerics
-    dt::Float64
-    t_final::Float64
+struct DampfNumericalParams
+    Δt::Float64
     chi_max::Int
     svd_tol::Float64
-    save_every::Int
 end
 
-function default_numerics()
-    return DampfNumerics(0.01, 1.0, 64, 1e-10, 1)
-end
+default_numerical_params() = DampfNumericalParams(1.0e-5, 8, 1.0e-10)
 
 end
