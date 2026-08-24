@@ -6,11 +6,11 @@ default(fontfamily="Computer Modern", framestyle=:box, dpi=300)
 
 """
 3D analysis of experiments/omega_gammaL_scan_killoran.jl's output: one
-surface + one heatmap per observable (I, V, P, vibronic enhancement %),
-with ω and ΓL as the two horizontal axes. Missing (ω,ΓL) combinations (e.g.
-if the scan grid isn't a perfect rectangle -- more ω or ΓL points added
-later than on the other axis) show as gaps (NaN) rather than erroring.
-Rerun this after adding points to the CSV to refresh the plots.
+surface per observable (I, V, P, vibronic enhancement %), with ω and ΓL as
+the two horizontal axes. Missing (ω,ΓL) combinations (e.g. if the scan grid
+isn't a perfect rectangle -- more ω or ΓL points added later than on the
+other axis) show as gaps (NaN) rather than erroring. Rerun this after
+adding points to the CSV to refresh the plots.
 """
 
 results = load_omega_gammaL_scan_csv(joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "omega_gammaL_scan_killoran.csv"))
@@ -48,12 +48,7 @@ for s in specs
     psurf = surface(ωs, ΓLs, Z; xlabel="ω (cm^-1)", ylabel="ΓL (cm^-1)", zlabel=s.zlabel,
                      title="$(s.title) vs (ω, ΓL)", camera=(50, 30), color=:viridis, size=(800, 650))
     savefig(psurf, joinpath(outdir, "$(s.fname)_surface_3d.png"))
-
-    pheat = heatmap(ωs, ΓLs, Z; xlabel="ω (cm^-1)", ylabel="ΓL (cm^-1)",
-                     title="$(s.title) vs (ω, ΓL)", color=:viridis)
-    scatter!(pheat, [r.ω for r in results], [r.ΓL for r in results]; label=false, markersize=2, color=:white, markeralpha=0.6)
-    savefig(pheat, joinpath(outdir, "$(s.fname)_heatmap.png"))
 end
 
-println("Saved 3D surface + heatmap plots (", length(specs), " observables) in: $(outdir)")
+println("Saved 3D surface plots (", length(specs), " observables) in: $(outdir)")
 println("Grid: $(length(ωs)) ω values x $(length(ΓLs)) ΓL values = $(length(results)) points loaded")
