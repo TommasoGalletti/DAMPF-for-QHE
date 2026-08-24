@@ -2,8 +2,8 @@ module DampfPlots
 
 using Plots
 
-export load_reference_sweep, plot_comparison, plot_iv_dampf,
-       plot_current_vs_voltage_comparison, plot_power_vs_voltage_comparison
+export load_reference_sweep, plot_comparison, plot_dampf_vs_gammaL, plot_iv_dampf,
+       plot_current_vs_voltage_comparison, plot_power_vs_voltage_comparison, plot_omega_scan
 
 """
 Load a full-sweep exact-Lindblad reference CSV (columns
@@ -60,6 +60,60 @@ function plot_comparison(results, outdir; reference=nothing)
 
     panel = plot(p1, p2, p3, p4; layout=(2, 2), size=(1000, 800))
     savefig(panel, joinpath(outdir, "iv_curve_comparison_panel.png"))
+end
+
+"""DAMPF-only I, V, P vs log10(ΓL) -- no "Lindblad diretto"/reference overlay,
+for sweeps where the dense reference is no longer attainable (e.g. once M is
+large enough, see `killoran_three_mode_model`)."""
+function plot_dampf_vs_gammaL(results, outdir)
+    mkpath(outdir)
+    logΓL = log10.([r.ΓL for r in results])
+
+    p1 = plot(logΓL, [r.I_dampf for r in results]; label=false, lw=2, marker=:diamond,
+              xlabel="log10(ΓL / cm^-1)", ylabel="Current I (cm^-1)", title="Current vs load rate ΓL")
+    savefig(p1, joinpath(outdir, "current_vs_gammaL.png"))
+
+    p2 = plot(logΓL, [r.V_dampf for r in results]; label=false, lw=2, marker=:diamond,
+              xlabel="log10(ΓL / cm^-1)", ylabel="Voltage V (cm^-1)", title="Voltage vs load rate ΓL")
+    savefig(p2, joinpath(outdir, "voltage_vs_gammaL.png"))
+
+    p3 = plot(logΓL, [r.P_dampf for r in results]; label=false, lw=2, marker=:diamond,
+              xlabel="log10(ΓL / cm^-1)", ylabel="Power P (cm^-2)", title="Power vs load rate ΓL")
+    savefig(p3, joinpath(outdir, "power_vs_gammaL.png"))
+
+    panel = plot(p1, p2, p3; layout=(1, 3), size=(1400, 400))
+    savefig(panel, joinpath(outdir, "iv_curve_panel.png"))
+end
+
+"""I, V, P and power-enhancement-vs-g=0-baseline, all vs mode frequency ω, at
+the fixed reference ΓL used by the scan -- for studying sensitivity to
+vibronic resonance detuning (ω=200 is resonant with ε1-ε2 in the Killoran
+benchmark; see experiments/omega_scan_killoran.jl)."""
+function plot_omega_scan(results, outdir; ΓL_ref=nothing)
+    mkpath(outdir)
+    r = results[sortperm([x.ω for x in results])]
+    ω = [x.ω for x in r]
+    title_suffix = ΓL_ref === nothing ? "" : " (ΓL=$(ΓL_ref))"
+
+    p1 = plot(ω, [x.I_dampf for x in r]; label=false, lw=2, marker=:diamond,
+              xlabel="ω (cm^-1)", ylabel="Current I (cm^-1)", title="Current vs ω" * title_suffix)
+    savefig(p1, joinpath(outdir, "current_vs_omega.png"))
+
+    p2 = plot(ω, [x.V_dampf for x in r]; label=false, lw=2, marker=:diamond,
+              xlabel="ω (cm^-1)", ylabel="Voltage V (cm^-1)", title="Voltage vs ω" * title_suffix)
+    savefig(p2, joinpath(outdir, "voltage_vs_omega.png"))
+
+    p3 = plot(ω, [x.P_dampf for x in r]; label=false, lw=2, marker=:diamond,
+              xlabel="ω (cm^-1)", ylabel="Power P (cm^-2)", title="Power vs ω" * title_suffix)
+    savefig(p3, joinpath(outdir, "power_vs_omega.png"))
+
+    p4 = plot(ω, [x.enhancement_pct for x in r]; label=false, lw=2, marker=:diamond, color=:darkgreen,
+              xlabel="ω (cm^-1)", ylabel="Power enhancement vs g=0 (%)", title="Vibronic enhancement vs ω" * title_suffix)
+    hline!(p4, [0.0]; label=false, color=:gray, linestyle=:dash)
+    savefig(p4, joinpath(outdir, "enhancement_vs_omega.png"))
+
+    panel = plot(p1, p2, p3, p4; layout=(2, 2), size=(1000, 800))
+    savefig(panel, joinpath(outdir, "omega_scan_panel.png"))
 end
 
 """Twin-axis Current(V) and Power(V) plot for DAMPF alone (points sorted by
