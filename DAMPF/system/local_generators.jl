@@ -25,13 +25,12 @@ _left_mult_superop(X::AbstractMatrix) = kron(Matrix{ComplexF64}(I, size(X, 1), s
 _right_mult_superop(X::AbstractMatrix) = kron(transpose(Matrix{ComplexF64}(X)), Matrix{ComplexF64}(I, size(X, 1), size(X, 1)))
 
 """
-The four possible local roles a mode can play for a given (m,n) block,
-depending on whether m and/or n equal the mode's owning electronic site.
-Every physical term in this model (H_v, vibrational damping, and the
-vibronic coupling H_ev) acts on at most ONE mode at a time -- this is what
-makes the whole architecture avoid 2-site gates entirely. Each role is a
-dense Nb^2 x Nb^2 superoperator, already Δt-exponentiated and wrapped as an
-ITensor gate with legs (s', s), ready for `noprime(gate * ψ[q])`.
+The four local roles a mode can play for block (m,n), depending on whether
+m/n equal the mode's owning site. Every physical term here (H_v, damping,
+vibronic coupling) acts on at most one mode at a time -- why this
+architecture never needs 2-site gates. Each role is a dense Nb^2 x Nb^2
+superoperator, Δt-exponentiated and wrapped as an ITensor gate (s',s),
+ready for `noprime(gate * ψ[q])`.
 
 - P0: neither m nor n is this mode's owning site -> only H_v + damping.
 - Pdiag: m == n == owner -> full local commutator with H_v + g*X, + damping.

@@ -8,12 +8,8 @@ using Main.DampfSystem.DampfTraceBasis: product_mps_from_vectors, zero_block, tr
 export init_ground_state, reduced_electronic_density, block_to_dense, blocks_to_dense,
        init_ground_state_triangular, reduced_electronic_density_triangular, blocks_to_dense_triangular
 
-"""
-Initial state: only block (1,1) [ground-ground] is nonzero, a product of
-vacuum states on every mode (matrix unit E_{1,1}=|0><0|); every other block
-is identically zero. Matches ρ0 = |g><g| ⊗ (vacuum on every mode) used
-throughout the benchmark.
-"""
+"""Initial state ρ0 = |g><g| ⊗ (vacuum on every mode): only block (1,1) is
+nonzero (matrix unit E_{1,1}=|0><0| on each mode), every other block zero."""
 function init_ground_state(model::DampfModel, siteinds::Vector{<:Index})
     dim = dim_e(model)
     blocks = Matrix{MPS}(undef, dim, dim)
@@ -30,11 +26,9 @@ function init_ground_state(model::DampfModel, siteinds::Vector{<:Index})
     return blocks
 end
 
-"""
-Reduced electronic density matrix ρ_e[m,n] = Tr(Ô_{m,n}), dense dim_e x
-dim_e, site basis -- feed directly into `Observables.jl`'s plain (non-`_vib`)
-functions.
-"""
+"""Reduced electronic density matrix ρ_e[m,n] = Tr(Ô_{m,n}), dense dim_e x
+dim_e, site basis -- feeds directly into `Observables.jl`'s plain (non-`_vib`)
+functions."""
 function reduced_electronic_density(blocks::Matrix{MPS}, τ::MPS)
     dim = size(blocks, 1)
     ρ = zeros(ComplexF64, dim, dim)
@@ -44,14 +38,8 @@ function reduced_electronic_density(blocks::Matrix{MPS}, τ::MPS)
     return ρ
 end
 
-"""
-Triangular-storage variant of `init_ground_state`: only populates m<=n
-entries (the m>n half is never allocated/read -- see
-`DampfTrotter.one_trotter_step_triangular!`, which exploits
-Ô_{n,m}=Ô_{m,n}^dagger to halve stored/evolved blocks). ρ(0)=|g><g|⊗vacuum
-only ever touches the diagonal block (1,1) anyway, so this differs from
-`init_ground_state` only in which off-diagonal entries get allocated.
-"""
+"""Triangular-storage variant of `init_ground_state`: only populates m<=n
+entries (see `DampfTrotter.one_trotter_step_triangular!`)."""
 function init_ground_state_triangular(model::DampfModel, siteinds::Vector{<:Index})
     dim = dim_e(model)
     blocks = Matrix{MPS}(undef, dim, dim)
@@ -68,13 +56,9 @@ function init_ground_state_triangular(model::DampfModel, siteinds::Vector{<:Inde
     return blocks
 end
 
-"""
-Triangular-storage variant of `reduced_electronic_density`: computes
-ρ_e[m,n]=Tr(Ô_{m,n}) directly for m<=n, and fills m>n by SCALAR conjugation
--- Tr(Ô_{n,m})=Tr(Ô_{m,n}^dagger)=conj(Tr(Ô_{m,n})), so no MPS dagger is
-needed here (unlike inside the mixing step), just `conj` on the already-
-computed number.
-"""
+"""Triangular-storage variant of `reduced_electronic_density`: computes m<=n
+directly, fills m>n by scalar conjugation (Tr(Ô_{n,m})=conj(Tr(Ô_{m,n})) --
+no MPS dagger needed here, unlike inside the mixing step)."""
 function reduced_electronic_density_triangular(blocks::Matrix{MPS}, τ::MPS)
     dim = size(blocks, 1)
     ρ = zeros(ComplexF64, dim, dim)
@@ -94,13 +78,10 @@ function _mixed_radix_index(digits::Vector{Int}, radices::Vector{Int})
     return idx + 1
 end
 
-"""
-Reconstruct one block Ô as a dense (ΠNb_q x ΠNb_q) matrix on the joint
-vibrational Hilbert space (mode 1 slowest, last mode fastest -- matching
-`Hamiltonian.build_total_hamiltonian`'s `kron` ordering convention). CHECK-
-ONLY utility: contracts the full MPS into a single tensor, so it does not
-scale -- never call this from `dynamics/`.
-"""
+"""Reconstruct one block Ô as a dense (ΠNb_q x ΠNb_q) matrix (mode 1 slowest,
+matching `Hamiltonian.build_total_hamiltonian`'s `kron` convention).
+CHECK-ONLY: contracts the full MPS, doesn't scale -- never call from
+`dynamics/`."""
 function block_to_dense(ψ::MPS, siteinds::Vector{<:Index}, modes::Vector{DampfMode})
     M = length(modes)
     Nbs = [mode.Nb for mode in modes]
@@ -132,12 +113,9 @@ function block_to_dense(ψ::MPS, siteinds::Vector{<:Index}, modes::Vector{DampfM
     return dense
 end
 
-"""
-Reconstruct the full (dim_e*ΠNb_q x dim_e*ΠNb_q) dense density operator from
-every block, electronic label slowest (matching
-`Hamiltonian.build_total_hamiltonian`'s `kron(H_e, kron(Iv1,Iv2,...))`
-convention). CHECK-ONLY -- see `block_to_dense`.
-"""
+"""Reconstruct the full (dim_e*ΠNb_q)-dim dense density operator from every
+block, electronic label slowest (matching `Hamiltonian.build_total_hamiltonian`'s
+`kron` convention). CHECK-ONLY -- see `block_to_dense`."""
 function blocks_to_dense(blocks::Matrix{MPS}, siteinds::Vector{<:Index}, model::DampfModel)
     dim = dim_e(model)
     Dv = prod(mode.Nb for mode in model.modes)
@@ -150,12 +128,9 @@ function blocks_to_dense(blocks::Matrix{MPS}, siteinds::Vector{<:Index}, model::
     return dense
 end
 
-"""
-Triangular-storage variant of `blocks_to_dense`: for m>n, the dense block is
-reconstructed as the conjugate-transpose of the ALREADY-COMPUTED (n,m)
-dense block (cheap dense linear algebra) rather than needing an MPS dagger
-of a not-directly-stored block -- CHECK-ONLY, see `block_to_dense`.
-"""
+"""Triangular-storage variant of `blocks_to_dense`: for m>n, the dense block
+is the conjugate-transpose of the already-computed (n,m) block -- cheap,
+avoids an MPS dagger. CHECK-ONLY, see `block_to_dense`."""
 function blocks_to_dense_triangular(blocks::Matrix{MPS}, siteinds::Vector{<:Index}, model::DampfModel)
     dim = dim_e(model)
     Dv = prod(mode.Nb for mode in model.modes)

@@ -11,25 +11,20 @@ using Main.DampfSystem.DampfTrotter: one_trotter_step_triangular!
 export run_to_steady_state
 
 """
-Propagate the DAMPF Trotter dynamics from the ground state until a scalar
+Propagate the DAMPF Trotter dynamics from the ground state until
 `observable_fn(ρ_e)` stops changing by more than `conv_tol` between
 checkpoints (every `check_every` steps), or `max_steps` is reached.
 
-This driver is generic on purpose: `P_e` (the ΓL/model-specific electronic-
-mixing propagator) is built by the caller, and `observable_fn` is whatever
-scalar the caller wants to track for convergence (e.g. current, a
-population, ...) -- this file knows nothing about ΓL, `Observables.jl`, or
-any one experiment's model, only the Trotter-step machinery in
-`dynamics/trotter.jl`. `label` is just a prefix for the progress log line.
+Generic on purpose: `P_e` and `observable_fn` are supplied by the caller,
+so this file knows nothing about ΓL, `Observables.jl`, or any one
+experiment's model -- only the Trotter-step machinery of `dynamics/trotter.jl`.
 
-Internally uses the triangular-storage Trotter step (only m<=n blocks are
-stored/evolved, exploiting Ô_{n,m}=Ô_{m,n}^dagger -- see
-`dynamics/trotter.jl`/`system/dagger.jl` and the SPIEGAZIONE docs for why
-this always holds and is exact, not an approximation; validated against the
-original full-storage step before being made the default here). The
-returned `blocks` is filled back out to full dim_e x dim_e storage (a cheap,
-one-time reconstruction, not per-step) so this stays a drop-in replacement
-for callers like `iv_curve_dampf_killoran.jl`'s `blocks_to_dense` call.
+Uses the triangular-storage Trotter step internally (only m<=n blocks are
+evolved, exploiting Ô_{n,m}=Ô_{m,n}^dagger -- see `dynamics/trotter.jl`,
+`system/dagger.jl`, and the SPIEGAZIONE docs). The returned `blocks` is
+filled back to full dim_e x dim_e storage (cheap, one-time) so this stays a
+drop-in replacement for callers that expect full storage, e.g.
+`iv_curve_dampf_killoran.jl`'s `blocks_to_dense` call.
 """
 function run_to_steady_state(
     model::DampfModel, role_props::Vector{ModeRolePropagators}, siteinds::Vector{<:Index}, τ::MPS, P_e::AbstractMatrix;

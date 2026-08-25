@@ -12,7 +12,8 @@ include("../dynamics/trotter.jl")
 include("../dynamics/steady_state.jl")
 
 using .DampfPhysical: DampfMode, DampfModel, dim_e, killoran_benchmark_model, killoran_three_mode_model,
-                      killoran_s1x2_s2x2_model, KB_CM1_PER_K, thermal_occupation
+                      killoran_s1x2_s2x2_model, killoran_four_site_model, killoran_cascade_model,
+                      KB_CM1_PER_K, thermal_occupation
 using .DampfNumerical: DampfNumericalParams, default_numerical_params
 using .DampfModeIndex: build_mode_siteinds, modes_on_site
 using .DampfElectronic: build_electronic_hamiltonian, diagonalize_electronic,
@@ -26,7 +27,8 @@ using .DampfTrotter: one_trotter_step!, one_trotter_step_triangular!
 using .DampfSteadyState: run_to_steady_state
 
 export DampfMode, DampfModel, dim_e, killoran_benchmark_model, killoran_three_mode_model,
-       killoran_s1x2_s2x2_model, KB_CM1_PER_K, thermal_occupation
+       killoran_s1x2_s2x2_model, killoran_four_site_model, killoran_cascade_model,
+       KB_CM1_PER_K, thermal_occupation
 export DampfNumericalParams, default_numerical_params
 export build_mode_siteinds, modes_on_site
 export build_electronic_hamiltonian, diagonalize_electronic,

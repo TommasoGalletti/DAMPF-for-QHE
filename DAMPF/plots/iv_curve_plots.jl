@@ -3,7 +3,7 @@ module DampfPlots
 using Plots
 
 export load_reference_sweep, plot_comparison, plot_dampf_vs_gammaL, plot_iv_dampf,
-       plot_current_vs_voltage_comparison, plot_power_vs_voltage_comparison, plot_omega_scan
+       plot_current_vs_voltage_comparison, plot_power_vs_voltage_comparison
 
 """
 Load a full-sweep exact-Lindblad reference CSV (columns
@@ -85,37 +85,6 @@ function plot_dampf_vs_gammaL(results, outdir)
     savefig(panel, joinpath(outdir, "iv_curve_panel.png"))
 end
 
-"""I, V, P and power-enhancement-vs-g=0-baseline, all vs mode frequency ω, at
-the fixed reference ΓL used by the scan -- for studying sensitivity to
-vibronic resonance detuning (ω=200 is resonant with ε1-ε2 in the Killoran
-benchmark; see experiments/omega_scan_killoran.jl)."""
-function plot_omega_scan(results, outdir; ΓL_ref=nothing)
-    mkpath(outdir)
-    r = results[sortperm([x.ω for x in results])]
-    ω = [x.ω for x in r]
-    title_suffix = ΓL_ref === nothing ? "" : " (ΓL=$(ΓL_ref))"
-
-    p1 = plot(ω, [x.I_dampf for x in r]; label=false, lw=2, marker=:diamond,
-              xlabel="ω (cm^-1)", ylabel="Current I (cm^-1)", title="Current vs ω" * title_suffix)
-    savefig(p1, joinpath(outdir, "current_vs_omega.png"))
-
-    p2 = plot(ω, [x.V_dampf for x in r]; label=false, lw=2, marker=:diamond,
-              xlabel="ω (cm^-1)", ylabel="Voltage V (cm^-1)", title="Voltage vs ω" * title_suffix)
-    savefig(p2, joinpath(outdir, "voltage_vs_omega.png"))
-
-    p3 = plot(ω, [x.P_dampf for x in r]; label=false, lw=2, marker=:diamond,
-              xlabel="ω (cm^-1)", ylabel="Power P (cm^-2)", title="Power vs ω" * title_suffix)
-    savefig(p3, joinpath(outdir, "power_vs_omega.png"))
-
-    p4 = plot(ω, [x.enhancement_pct for x in r]; label=false, lw=2, marker=:diamond, color=:darkgreen,
-              xlabel="ω (cm^-1)", ylabel="Power enhancement vs g=0 (%)", title="Vibronic enhancement vs ω" * title_suffix)
-    hline!(p4, [0.0]; label=false, color=:gray, linestyle=:dash)
-    savefig(p4, joinpath(outdir, "enhancement_vs_omega.png"))
-
-    panel = plot(p1, p2, p3, p4; layout=(2, 2), size=(1000, 800))
-    savefig(panel, joinpath(outdir, "omega_scan_panel.png"))
-end
-
 """Twin-axis Current(V) and Power(V) plot for DAMPF alone (points sorted by
 voltage so the line does not zigzag -- V decreases monotonically with ΓL, so
 this amounts to reversing the ΓL order)."""
@@ -124,8 +93,9 @@ function plot_iv_dampf(results, outdir)
     V = [r.V_dampf for r in results]
     I = [r.I_dampf for r in results]
     P = [r.P_dampf for r in results]
+    ΓL = [r.ΓL for r in results]
     idx = sortperm(V)
-    V, I, P = V[idx], I[idx], P[idx]
+    V, I, P, ΓL = V[idx], I[idx], P[idx], ΓL[idx]
 
     p = plot(V, I; xlabel="Voltage V (cm^-1)", ylabel="Current I (cm^-1)",
               title="DAMPF: current and power vs voltage", lw=2, marker=:diamond,
@@ -137,7 +107,7 @@ function plot_iv_dampf(results, outdir)
     imax = argmax(P)
     scatter!(twin, [V[imax]], [P[imax]]; markersize=8, color=:red, markerstrokewidth=2, markerstrokecolor=:darkred, label=false)
     annotate!(p, minimum(V) + 0.05 * (maximum(V) - minimum(V)), minimum(I) + 0.10 * (maximum(I) - minimum(I)),
-              text("Max P = $(round(P[imax], sigdigits=4))\nat V = $(round(V[imax], sigdigits=5))", 10, :red, :left);
+              text("Max P = $(round(P[imax], sigdigits=4))\nat V = $(round(V[imax], sigdigits=5))\nΓL = $(ΓL[imax])", 10, :red, :left);
               subplot=1)
 
     savefig(p, joinpath(outdir, "power_and_current_vs_voltage_dampf.png"))

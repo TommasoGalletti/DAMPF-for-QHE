@@ -18,6 +18,7 @@ isempty(results) && error("No data in omega_gammaL_scan_killoran.csv -- run expe
 
 ωs = sort(unique([r.ω for r in results]))
 ΓLs = sort(unique([r.ΓL for r in results]))
+logΓLs = log10.(ΓLs)
 lookup = Dict((r.ω, r.ΓL) => r for r in results)
 
 """Zᵢⱼ = getfield(result, field) at (ω=ωs[j], ΓL=ΓLs[i]); NaN where missing
@@ -45,7 +46,7 @@ specs = [
 for s in specs
     Z = grid_for(s.field)
 
-    psurf = surface(ωs, ΓLs, Z; xlabel="ω (cm^-1)", ylabel="ΓL (cm^-1)", zlabel=s.zlabel,
+    psurf = surface(ωs, logΓLs, Z; xlabel="ω (cm^-1)", ylabel="log10(ΓL / cm^-1)", zlabel=s.zlabel,
                      title="$(s.title) vs (ω, ΓL)", camera=(50, 30), color=:viridis, size=(800, 650))
     savefig(psurf, joinpath(outdir, "$(s.fname)_surface_3d.png"))
 end

@@ -58,15 +58,13 @@ end
 """
 Build every electronic Lindblad channel (hot bath, load, cold bath) in site
 basis. `idx_low`/`idx_g` mirror `Observables.jl`'s convention (load feeds
-`idx_low`, ground exciton is `idx_g`) -- for the Killoran benchmark these are
-`dim_e-1` and `dim_e`, but this function makes no assumption about their
-values, unlike `Lindblad.build_load_operator` (which hardcodes exciton index
-3 and is therefore only valid for that one N=3 benchmark). Reuses
-`Lindblad.build_hot_operators`/`build_cold_operators` unchanged.
+`idx_low`, ground exciton is `idx_g`) -- unlike `Lindblad.build_load_operator`
+(hardcodes exciton index 3, only valid for the N=3 benchmark), this makes no
+assumption about their values. Reuses `Lindblad.build_hot_operators`/
+`build_cold_operators` unchanged.
 
-Returns `(ops, energies, U)`: the jump operators, and the electronic
-eigendecomposition used to build them (exposed so `check/` can cross-verify
-against `Hamiltonian.diagonalize_hamiltonian`).
+Returns `(ops, energies, U)` so `check/` can cross-verify the eigendecomposition
+against `Hamiltonian.diagonalize_hamiltonian`.
 """
 function build_electronic_dissipators(
     H_e::AbstractMatrix;
@@ -90,12 +88,11 @@ function build_electronic_dissipators(
 end
 
 """
-The electronic-label mixing propagator: `exp(Δt * L)` where `L` is the
-standard vectorized Lindblad generator restricted to the `dim_e`-dimensional
-electronic Hilbert space, built via `Liouvillian.build_liouvillian`
-completely unmodified. This is the ONLY generator that mixes different
-`(m,n)` blocks together -- every other physical term (mode Hamiltonians,
-vibrational damping, the vibronic coupling) is single-mode local, handled in
+The electronic-label mixing propagator: `exp(Δt * L)`, `L` the standard
+vectorized Lindblad generator on the `dim_e`-dimensional electronic space,
+via `Liouvillian.build_liouvillian` unmodified. This is the ONLY generator
+that mixes different `(m,n)` blocks together -- every other term (mode
+Hamiltonians, damping, vibronic coupling) is single-mode local, handled in
 `local_generators.jl`.
 """
 function build_electronic_mixing_propagator(H_e::AbstractMatrix, dissipators, Δt::Float64)

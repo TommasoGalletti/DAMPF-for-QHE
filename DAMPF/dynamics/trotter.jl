@@ -13,11 +13,10 @@ export one_trotter_step!, one_trotter_step_triangular!
 _flatidx(m::Int, n::Int, dim::Int) = (n - 1) * dim + m
 
 """
-Local (single-mode) step: for every electronic block (m,n) and every mode
-q, select the role gate (P0/Pdiag/Pket/Pbra) depending on whether m and/or n
-equal that mode's owning electronic site, and apply it in place. No bond
-dimension change here; every physical term (H_v, damping, vibronic coupling)
-is single-mode local, so this step is order-independent across (m,n,q).
+Local step: for every block (m,n) and mode q, pick the role gate
+(P0/Pdiag/Pket/Pbra) from whether m/n match that mode's owning site, and
+apply it in place. No bond-dimension change -- every term here (H_v,
+damping, vibronic coupling) is single-mode local.
 """
 function _apply_local_step!(blocks::Matrix{MPS}, model::DampfModel, role_props::Vector{ModeRolePropagators})
     dim = size(blocks, 1)
@@ -42,13 +41,10 @@ end
 
 """
 Electronic-mixing step: `Ô'_{m,n} = Σ_{k,l} P_e[flat(m,n),flat(k,l)] · Ô_{k,l}`,
-via ITensorMPS `+` with truncation -- the only step that grows/truncates
-bond dimension (matches the paper's own Fig. 2c compression step). `old` is
-snapshotted first since every new block potentially reads every old one.
-ρ(0) is a pure product state (only block (1,1) nonzero), so "most source
-terms are exactly zero" is the very first step, not a rare edge case --
-skip identically-zero sources explicitly rather than paying for a zero-MPS
-sum.
+via ITensorMPS `+` with truncation -- the only step where bond dimension
+grows (matches the paper's Fig. 2c compression step). `old` is snapshotted
+first since every new block can read every old one. Zero sources (e.g. most
+blocks at t=0) are skipped explicitly rather than summed.
 """
 function _apply_electronic_mixing!(
     blocks::Matrix{MPS}, P_e::AbstractMatrix, siteinds::Vector{<:Index};
@@ -80,13 +76,11 @@ function _apply_electronic_mixing!(
 end
 
 """
-One (first-order, Lie-Trotter) DAMPF step: the local step, then the
-electronic-mixing step, then trace renormalization. SVD truncation in the
-mixing step does not preserve Tr(ρ) (it minimizes Hilbert-Schmidt/Frobenius
-error, not trace error -- the same root cause discovered in the old
-hand-rolled architecture), so every block is rescaled by `1/Tr(ρ)` at the
-end. Returns the pre-renormalization trace (diagnostic: how much the
-truncation drifted this step).
+One first-order Lie-Trotter DAMPF step: local step, electronic mixing, trace
+renormalization. SVD truncation in the mixing step minimizes Frobenius
+error, not trace error, so `Tr(ρ)` drifts each step; every block is
+rescaled by `1/Tr(ρ)` at the end. Returns the pre-renormalization trace
+(diagnostic: how far this step drifted).
 """
 function one_trotter_step!(
     blocks::Matrix{MPS}, model::DampfModel, role_props::Vector{ModeRolePropagators},
@@ -105,12 +99,8 @@ function one_trotter_step!(
     return tr_val
 end
 
-"""
-Triangular-storage variant of `_apply_local_step!`: only touches blocks with
-m<=n (the m>n half is never allocated in the triangular-storage `blocks`
-matrix -- see `one_trotter_step_triangular!`). Same gate-selection logic,
-restricted to the stored half.
-"""
+"""Triangular-storage variant of `_apply_local_step!`: same gate-selection
+logic, restricted to the stored half (m<=n)."""
 function _apply_local_step_triangular!(blocks::Matrix{MPS}, model::DampfModel, role_props::Vector{ModeRolePropagators})
     dim = size(blocks, 1)
     for (q, mode) in enumerate(model.modes)
@@ -134,18 +124,12 @@ end
 
 """
 Triangular-storage variant of `_apply_electronic_mixing!`: only computes
-output blocks (m,n) with m<=n (`dim*(dim+1)/2` instead of `dim^2` -- 10 vs
-16 for dim_e=4). Exploits Ô_{n,m}=Ô_{m,n}^dagger, which always holds for a
-physical ρ and is preserved by every piece of this dynamics (Hamiltonian
-commutators and Lindblad dissipators are Hermiticity-preserving by
-construction; see the DAMPF SPIEGAZIONE docs for the full argument).
-Source blocks (k,l) with k>l are reconstructed once per step via
-`dagger_block` (cheap: per-site conjugate + fixed permutation gate, no SVD)
-instead of being stored/truncated independently -- this doesn't just save
-work, it makes the m>n half EXACTLY the dagger of the stored half. Today's
-unoptimized `_apply_electronic_mixing!` truncates both halves independently
-via separate SVDs, so hermiticity there only holds approximately (drifts
-slowly, like `Tr(ρ)` does before renormalization).
+outputs (m,n) with m<=n (`dim*(dim+1)/2` instead of `dim^2`), exploiting
+Ô_{n,m}=Ô_{m,n}^dagger (always true for physical ρ, preserved by every term
+of this dynamics -- see the SPIEGAZIONE docs). Sources with k>l are
+reconstructed via `dagger_block` (cheap, no SVD) instead of being stored and
+truncated independently, so the m>n half is exactly the dagger of the
+stored half rather than only approximately so.
 """
 function _apply_electronic_mixing_triangular!(
     blocks::Matrix{MPS}, P_e::AbstractMatrix, siteinds::Vector{<:Index}, swap_gates::Vector{ITensor};
@@ -154,8 +138,7 @@ function _apply_electronic_mixing_triangular!(
     dim = size(blocks, 1)
     old = copy(blocks)  # only entries with k<=l are ever populated/read
 
-    # Precompute each not-directly-stored mirror source ONCE (cheap, no SVD)
-    # rather than re-deriving it on every (m,n) output that happens to need it.
+    # Precompute each mirror source once (cheap, no SVD), not per (m,n) output.
     mirrors = Dict{Tuple{Int,Int},MPS}()
     for l in 1:dim, k in (l + 1):dim
         mirrors[(k, l)] = dagger_block(old[l, k], swap_gates)
@@ -185,14 +168,9 @@ function _apply_electronic_mixing_triangular!(
     return nothing
 end
 
-"""
-Triangular-storage variant of `one_trotter_step!`: stores/evolves only the
-m<=n half of `blocks` (see `_apply_electronic_mixing_triangular!` for why
-this is exact, not an approximation). `swap_gates` (from
-`DampfDagger.build_swap_gates`, one per mode) is Δt-independent, build it
-once alongside `role_props`. Trace renormalization is unaffected in spirit
-(still uses only the diagonal, always stored) but now loops m<=n only.
-"""
+"""Triangular-storage variant of `one_trotter_step!`: evolves only the m<=n
+half of `blocks`. `swap_gates` (`DampfDagger.build_swap_gates`) is
+Δt-independent, build it once alongside `role_props`."""
 function one_trotter_step_triangular!(
     blocks::Matrix{MPS}, model::DampfModel, role_props::Vector{ModeRolePropagators},
     P_e::AbstractMatrix, siteinds::Vector{<:Index}, τ::MPS, swap_gates::Vector{ITensor};
