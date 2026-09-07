@@ -95,7 +95,7 @@ end
 # Points chosen from the same ΓL values already tested for s1x2_s2x2.
 # ----------------------------------------------------------------------------
 
-ΓL_list = [1500.0, 3000.0, 8000.0, 30000.0]
+ΓL_list = [40.0, 150.0, 300.0, 10000.0, 15000.0]
 
 csv_path = joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "iv_curve_cluster.csv")
 

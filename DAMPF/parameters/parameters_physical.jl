@@ -121,16 +121,20 @@ lowest excited state -- so idx_low/idx_g still land on dim_e-1/dim_e,
 confirmed by diagonalizing `H_e` in check/cluster_smoke_test.jl. The
 E=200 degeneracy doesn't matter: neither the hot bath (unique highest
 state) nor the load (unique lowest, s3) touches it.
+
+`g` is exposed so callers can build a g=0 (no vibronic coupling) baseline of
+this same topology, for enhancement comparisons that isolate the vibronic
+effect from the topology change itself.
 """
-function killoran_four_site_model(; Nb::Int=6)
+function killoran_four_site_model(; Nb::Int=6, g::Float64=55.0)
     return DampfModel(
         -10000.0,
         [300.0, 300.0, 0.0, 300.0],
         [0.0 100.0 0.0 100.0; 100.0 0.0 0.0 100.0; 0.0 0.0 0.0 0.0; 100.0 100.0 0.0 0.0],
         [
-            DampfMode(2, 200.0, 55.0, 5.3, 293.0, Nb),
-            DampfMode(3, 200.0, 55.0, 5.3, 293.0, Nb),
-            DampfMode(5, 200.0, 55.0, 5.3, 293.0, Nb),
+            DampfMode(2, 200.0, g, 5.3, 293.0, Nb),
+            DampfMode(3, 200.0, g, 5.3, 293.0, Nb),
+            DampfMode(5, 200.0, g, 5.3, 293.0, Nb),
         ],
     )
 end
@@ -147,15 +151,19 @@ check/cascade_smoke_test.jl, not read off by hand.
 
 Modes stay on s1/s2 only (same as the benchmark) so this isolates the
 cascade topology's effect from any change in vibronic structure.
+
+`g` is exposed so callers can build a g=0 (no vibronic coupling) baseline of
+this same topology, for enhancement comparisons that isolate the vibronic
+effect from the topology change itself.
 """
-function killoran_cascade_model(; Nb::Int=6)
+function killoran_cascade_model(; Nb::Int=6, g::Float64=55.0)
     return DampfModel(
         -10000.0,
         [300.0, 300.0, 150.0, 0.0],
         [0.0 100.0 0.0 0.0; 100.0 0.0 30.0 0.0; 0.0 30.0 0.0 30.0; 0.0 0.0 30.0 0.0],
         [
-            DampfMode(2, 200.0, 55.0, 5.3, 293.0, Nb),
-            DampfMode(3, 200.0, 55.0, 5.3, 293.0, Nb),
+            DampfMode(2, 200.0, g, 5.3, 293.0, Nb),
+            DampfMode(3, 200.0, g, 5.3, 293.0, Nb),
         ],
     )
 end

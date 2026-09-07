@@ -87,7 +87,7 @@ end
 # tested for s1x2_s2x2. First batch: 6 points, more to follow.
 # ----------------------------------------------------------------------------
 
-ΓL_list = [0.1, 3000.0, 15000.0, 30000.0]
+ΓL_list = [1750.0]
 
 csv_path = joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "iv_curve_cascade.csv")
 
