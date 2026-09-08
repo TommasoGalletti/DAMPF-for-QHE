@@ -7,58 +7,66 @@ Julia implementation of a quantum heat engine model for light-harvesting systems
 
 ## Overview
 
-This repository contains a Julia implementation of a quantum heat engine model for light-harvesting systems. The code covers both the electronic reference model and the vibronic extension used in the current simulations.
+The repository has two parts:
 
-## Current Simulation Status
+- **`src/`** – Lindblad master-equation model (electronic and vibronic), solved directly for the steady state.
+- **`DAMPF/`** – matrix-product-state (DAMPF/ITensors) extension, used to go beyond the Lindblad local-mode treatment: multiple modes per site, and larger site topologies (cascade, cluster, three- and four-site networks).
 
-- The **electronic model** is implemented and produces steady-state populations, I-V curves, and power curves as a function of the load coupling $\Gamma_L$.
-- The **vibronic model** is also implemented, with local vibrational modes coupled to the electronic subsystem.
-- Current comparisons focus on a **weak/none coupling case** ($g=0$) and a **stronger vibronic coupling case** ($g=55\,\text{cm}^{-1}$).
-- The existing scripts generate publication-style plots for electronic populations, vibronic transport, and numerical checks.
+Both give steady-state populations, I-V curves, and power curves as a function of the load coupling $\Gamma_L$.
 
 ## Main Components
 
-- **Electronic Hamiltonian**: 3-site excitonic system, written in a 4-level basis that includes the ground state
-- **Thermal baths**: hot bath, cold bath, and load
-- **Lindblad dynamics**: steady-state description in the single-excitation sector
-- **Vibronic extension**: electronic plus local vibrational degrees of freedom
-- **Observables**: current, voltage, power, and populations
+**Lindblad model (`src/`)**
+- Electronic Hamiltonian: 3-site excitonic system in a 4-level basis including the ground state
+- Hot/cold/load thermal baths, steady-state Lindblad dynamics in the single-excitation sector
+- Vibronic extension: electronic system plus local vibrational modes
 
-## Results So Far
-
-- Electronic transport curves and steady-state populations have been computed.
-- Vibronic simulations have been run for the main parameter sets used in the project.
-- The code is structured to compare how vibronic coupling modifies transport and power extraction.
+**DAMPF model (`DAMPF/`)**
+- `system/` – Hamiltonian, mode indexing, dissipators, trace basis for arbitrary site/mode topologies
+- `dynamics/` – Trotterized MPS time evolution and steady-state extraction
+- `parameters/` – physical and numerical (bond dimension, timestep, cutoff) parameters
+- Topologies covered: Killoran 2-mode benchmark, three-mode (v1v2v3), two modes per site (s1x2/s2x2, incl. frequency sweep), cascade, cluster trio, and four-site networks
+- `omega_gammaL_scan_killoran.jl` scans vibrational frequency $\omega_v$ against $\Gamma_L$
+- `verify_multimode_equivalence.jl` checks the analytical equivalence of two identical modes per site to one effective mode
 
 ## Project Structure
 
 ```
-src/
-  ├─ Hamiltonian.jl      # Electronic and vibronic Hamiltonian construction
-  ├─ Lindblad.jl         # Jump operators and dissipation channels
-  ├─ Liouvillian.jl      # Liouvillian superoperator and time evolution
-  ├─ Solver.jl           # Steady-state solver
-  └─ Observables.jl      # Physical observables (current, power, populations)
+src/                      # Lindblad model
+  ├─ Hamiltonian.jl
+  ├─ Lindblad.jl
+  ├─ Liouvillian.jl
+  ├─ Solver.jl
+  └─ Observables.jl
 
 config/
-  └─ parameters.jl       # Physical constants and default parameters
+  └─ parameters.jl        # Physical constants and default parameters (Lindblad model)
 
-experiments/
-  ├─ IV_curve_electronic_populations.jl      # Electronic I-V + populations
-  ├─ IV_curve_vib.jl                         # Vibronic I-V (main analysis)
-  ├─ IV_curve_vib_test.jl                    # Convergence & numerical tests
-  └─ IV_curve2.jl                            # Electronic configuration
+experiments/              # Lindblad experiments
+  ├─ IV_curve_electronic_populations.jl
+  ├─ IV_curve_vib.jl
+  ├─ IV_curve_vib_populations.jl
+  └─ IV_curve2.jl
 
-imgs/
-  ├─ electronic/         # Electronic transport results
-  └─ vibrational/        # Vibronic coupling results (g=0, g=55)
+DAMPF/                    # Matrix-product-state extension
+  ├─ system/              # Hamiltonian, mode indexing, dissipators
+  ├─ dynamics/             # Trotter evolution, steady state
+  ├─ parameters/           # Physical & numerical (MPS) parameters
+  ├─ experiments/          # I-V curves per topology, omega-ΓL scan, checks
+  ├─ plots/                # Plotting utilities
+  └─ utils/                # CSV I/O
+
+outputs/                  # Generated figures and numeric vectors (both models)
+  ├─ imgs/
+  └─ numeric_vectors/
 ```
-
 
 ## Parameters
 
-All physical parameters are defined in `config/parameters.jl`:
+All physical parameters for the Lindblad model are defined in `config/parameters.jl`:
 - Exciton transition energies and couplings (cm⁻¹)
 - Thermal bath properties: temperatures ($T_H$, $T_C$), decay rates ($\gamma_H$, $\gamma_C$)
 - Vibrational frequency ($\omega_v$) and max mode number ($N_v$)
-- Load coupling sweep: $\Gamma_L \in [10^{-8}, 10^{8}]$ cm⁻¹ (70 points)
+- Load coupling sweep: $\Gamma_L \in [10^{-8}, 10^{8}]$ cm⁻¹
+
+DAMPF-specific physical and numerical parameters (site/mode topology, MPS bond dimension, timestep, cutoff) are in `DAMPF/parameters/`.
