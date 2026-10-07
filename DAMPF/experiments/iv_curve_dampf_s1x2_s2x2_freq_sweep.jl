@@ -35,8 +35,8 @@ Example (just add these 3 points, merged into the existing CSV): julia -t auto -
 Model is built inline here (not added to parameters/parameters_physical.jl)
 so this experiment can't affect any other script.
 
-Output: outputs/numeric_vectors/iv_curve_s1x2_s2x2_<ω2>.csv and
-outputs/imgs/s1x2_s2x2_<ω2>/ -- <ω2> is the integer-rounded frequency (e.g.
+Output: outputs/numeric_vectors/s1x2_s2x2/iv_curve_s1x2_s2x2_<ω2>.csv and
+outputs/imgs/s1x2_s2x2/s1x2_s2x2_<ω2>/ -- <ω2> is the integer-rounded frequency (e.g.
 "500"), matching the naming already used by the existing _300.jl output.
 Never touches any other experiment's files, including the existing
 _overtone (400) and _300 runs (those keep living in their own dedicated
@@ -110,7 +110,7 @@ end
     [0.1, 0.2, 0.5, 1.0, 5.0, 10.0, 20.0, 40.0, 50.0, 100.0, 150.0, 300.0, 500.0, 700.0, 900.0, 1000.0, 1200.0, 2000.0, 5000.0, 15000.0] :
     ΓL_list_override
 
-csv_path = joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "iv_curve_s1x2_s2x2_$(ω2_tag).csv")
+csv_path = joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "s1x2_s2x2", "iv_curve_s1x2_s2x2_$(ω2_tag).csv")
 
 println("Threads.nthreads() = $(Threads.nthreads())")
 println("ω2=$(ω2) cm^-1")
@@ -153,7 +153,7 @@ end
 all_results = load_dampf_sweep_csv(csv_path)
 println("\nCSV has $(length(all_results)) total points ($(length(results)) from this run): $(csv_path)")
 
-imgs_outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "s1x2_s2x2_$(ω2_tag)")
+imgs_outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "s1x2_s2x2", "s1x2_s2x2_$(ω2_tag)")
 plot_dampf_vs_gammaL(all_results, imgs_outdir)
 plot_iv_dampf(all_results, imgs_outdir)
 println("Saved plots in: $(imgs_outdir)")

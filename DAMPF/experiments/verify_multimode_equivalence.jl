@@ -60,7 +60,7 @@ modes_eff = [
 ]
 role_props = [DampfSystem.build_mode_role_propagators(mode, siteinds[q], Δt) for (q, mode) in enumerate(modes_eff)]
 
-s1x2s2x2 = load_dampf_sweep_csv(joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "iv_curve_s1x2_s2x2_200.csv"))
+s1x2s2x2 = load_dampf_sweep_csv(joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "s1x2_s2x2", "iv_curve_s1x2_s2x2_200.csv"))
 
 ΓL_list = [0.1, 10.0, 100.0, 500.0, 800.0, 2000.0, 10000.0]
 

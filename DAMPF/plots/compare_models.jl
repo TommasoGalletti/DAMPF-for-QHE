@@ -16,7 +16,7 @@ relevant experiment first if you want a plot to reflect new points.
 
 killoran = load_comparison_csv(joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "iv_curve_comparison.csv"))
 v1v2v3 = load_dampf_sweep_csv(joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "iv_curve_v1v2v3.csv"))
-s1x2s2x2 = load_dampf_sweep_csv(joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "iv_curve_s1x2_s2x2_200.csv"))
+s1x2s2x2 = load_dampf_sweep_csv(joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "s1x2_s2x2", "iv_curve_s1x2_s2x2_200.csv"))
 
 datasets = [
     (results=killoran, label="Killoran (1 modo su s1,s2)", color=:black, marker=:circle),

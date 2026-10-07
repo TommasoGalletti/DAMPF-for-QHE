@@ -89,15 +89,16 @@ end
 
 # ----------------------------------------------------------------------------
 # Sweep: append-and-sort workflow -- set ΓL_list to just the new points you
-# want to add THIS run; they get merged into outputs/numeric_vectors/
-# iv_curve_s1x2_s2x2_200.csv (overwriting a matching ΓL, not duplicating it),
+# want to add THIS run; they get merged into
+# outputs/numeric_vectors/s1x2_s2x2/iv_curve_s1x2_s2x2_200.csv (overwriting
+# a matching ΓL, not duplicating it),
 # and plots are regenerated from the full accumulated file. Empty by default
 # so re-running as-is is a safe no-op (just replots the existing data).
 # ----------------------------------------------------------------------------
 
 ΓL_list = [0.1, 0.2, 0.5, 5.0]
 
-csv_path = joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "iv_curve_s1x2_s2x2_200.csv")
+csv_path = joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "s1x2_s2x2", "iv_curve_s1x2_s2x2_200.csv")
 
 println("Δt=$(Δt), chi_max=$(chi_max), coeff_tol=$(coeff_tol), max_steps=$(max_steps), check_every=$(check_every), conv_tol=$(conv_tol)")
 flush(stdout)
@@ -141,7 +142,7 @@ end
 all_results = load_dampf_sweep_csv(csv_path)
 println("\nCSV has $(length(all_results)) total points ($(length(results)) from this run): $(csv_path)")
 
-imgs_outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "s1x2_s2x2_200")
+imgs_outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "s1x2_s2x2", "s1x2_s2x2_200")
 plot_dampf_vs_gammaL(all_results, imgs_outdir)
 plot_iv_dampf(all_results, imgs_outdir)
 println("Saved plots in: $(imgs_outdir)")

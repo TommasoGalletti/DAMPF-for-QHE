@@ -29,9 +29,10 @@ relative to the benchmark they were tuned against.
 This script instead rescales BOTH couplings by a common factor
 s=√(λ₀/λ_unscaled) so that λ stays pinned at λ₀ regardless of ω2, isolating
 the effect of detuning the second mode from the effect of simply adding
-more total coupling. Output goes to iv_curve_s1x2_s2x2_reorg_<ω2>.csv /
-imgs/s1x2_s2x2_reorg_<ω2>/ -- entirely separate from the unscaled sweep's
-files, so nothing there is touched.
+more total coupling. Output goes to
+numeric_vectors/s1x2_s2x2_reorg/iv_curve_s1x2_s2x2_reorg_<ω2>.csv /
+imgs/s1x2_s2x2_reorg/s1x2_s2x2_reorg_<ω2>/ -- entirely separate from the
+unscaled sweep's files, so nothing there is touched.
 
 Restricted by design to a handful of ΓL points bracketing the maximum-power
 region already found by the unscaled sweep (500-1200 cm^-1) rather than the
@@ -122,7 +123,7 @@ end
     [500.0, 600.0, 700.0, 800.0, 900.0, 1000.0, 1200.0] :
     ΓL_list_override
 
-csv_path = joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "iv_curve_s1x2_s2x2_reorg_$(ω2_tag).csv")
+csv_path = joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "s1x2_s2x2_reorg", "iv_curve_s1x2_s2x2_reorg_$(ω2_tag).csv")
 
 println("\nThreads.nthreads() = $(Threads.nthreads())")
 println("ω2=$(ω2) cm^-1 (reorg-rescaled, g=$(g_rescaled) cm^-1)")
@@ -165,7 +166,7 @@ end
 all_results = load_dampf_sweep_csv(csv_path)
 println("\nCSV has $(length(all_results)) total points ($(length(results)) from this run): $(csv_path)")
 
-imgs_outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "s1x2_s2x2_reorg_$(ω2_tag)")
+imgs_outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "s1x2_s2x2_reorg", "s1x2_s2x2_reorg_$(ω2_tag)")
 plot_dampf_vs_gammaL(all_results, imgs_outdir)
 plot_iv_dampf(all_results, imgs_outdir)
 println("Saved plots in: $(imgs_outdir)")

@@ -5,7 +5,7 @@ using Plots
 default(fontfamily="Computer Modern", framestyle=:box, dpi=300)
 
 """
-Compares every `outputs/numeric_vectors/iv_curve_s1x2_s2x2_<ω2>.csv` sweep
+Compares every `outputs/numeric_vectors/s1x2_s2x2/iv_curve_s1x2_s2x2_<ω2>.csv` sweep
 (2 modes per site, one fixed at 200 cm^-1 and one at ω2 -- see
 experiments/iv_curve_dampf_s1x2_s2x2.jl for ω2=200 itself and
 iv_curve_dampf_s1x2_s2x2_freq_sweep.jl for every other ω2), one line per
@@ -24,8 +24,8 @@ this file, plotting raw ΓL directly rather than log10(ΓL) (unlike the older
 plots/*.jl siblings) so tick labels show physical units.
 """
 
-const NUMERIC_DIR = joinpath(@__DIR__, "..", "outputs", "numeric_vectors")
-const OUTDIR = joinpath(@__DIR__, "..", "outputs", "imgs", "s1x2_s2x2_freq_compare")
+const NUMERIC_DIR = joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "s1x2_s2x2")
+const OUTDIR = joinpath(@__DIR__, "..", "outputs", "imgs", "s1x2_s2x2", "s1x2_s2x2_freq_compare")
 mkpath(OUTDIR)
 
 """Find every `iv_curve_s1x2_s2x2_<ω2>.csv` in `NUMERIC_DIR`, parse `<ω2>`
