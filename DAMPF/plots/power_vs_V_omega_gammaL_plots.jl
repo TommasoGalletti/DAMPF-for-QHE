@@ -25,7 +25,7 @@ palette_colors = cgrad(:viridis, length(ωs); categorical=true)
 
 ΓL_min, ΓL_max = extrema([r.ΓL for r in results])
 pfam = plot(; xlabel="Voltage V (cm^-1)", ylabel="Power P (cm^-2)",
-            title="Potenza vs Voltaggio", subtitle="ΓL ∈ [$(ΓL_min), $(ΓL_max)] cm^-1",
+            title="Power vs voltage", subtitle="ΓL ∈ [$(ΓL_min), $(ΓL_max)] cm^-1",
             legend=:outertopright, size=(900, 600))
 for (k, ω) in enumerate(ωs)
     rω = [r for r in results if r.ω == ω]

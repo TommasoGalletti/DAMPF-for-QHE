@@ -19,9 +19,9 @@ v1v2v3 = load_dampf_sweep_csv(joinpath(@__DIR__, "..", "outputs", "numeric_vecto
 s1x2s2x2 = load_dampf_sweep_csv(joinpath(@__DIR__, "..", "outputs", "numeric_vectors", "s1x2_s2x2", "iv_curve_s1x2_s2x2_200.csv"))
 
 datasets = [
-    (results=killoran, label="Killoran (1 modo su s1,s2)", color=:black, marker=:circle),
-    (results=v1v2v3, label="v1v2v3 (1 modo per sito, 3 modi)", color=:blue, marker=:diamond),
-    (results=s1x2s2x2, label="s1x2_s2x2 (2 modi su s1, 2 su s2)", color=:red, marker=:utriangle),
+    (results=killoran, label="benchmark (1 mode on s1, s2)", color=:black, marker=:circle),
+    (results=v1v2v3, label="one mode per site (3 modes)", color=:blue, marker=:diamond),
+    (results=s1x2s2x2, label="two modes per site on s1, s2", color=:red, marker=:utriangle),
 ]
 
 outdir = joinpath(@__DIR__, "..", "outputs", "imgs", "confronti")
@@ -30,9 +30,9 @@ mkpath(outdir)
 sorted_by(results, xfield) = results[sortperm([getfield(r, xfield) for r in results])]
 
 # --- I, V, P vs log10(ΓL) ---
-p1 = plot(; xlabel="log10(ΓL / cm^-1)", ylabel="Current I (cm^-1)", title="Corrente vs ΓL", legend=:bottomright)
-p2 = plot(; xlabel="log10(ΓL / cm^-1)", ylabel="Voltage V (cm^-1)", title="Voltaggio vs ΓL", legend=:bottomleft)
-p3 = plot(; xlabel="log10(ΓL / cm^-1)", ylabel="Power P (cm^-2)", title="Potenza vs ΓL", legend=:bottomright)
+p1 = plot(; xlabel="log10(ΓL / cm^-1)", ylabel="Current I (cm^-1)", title="Current vs ΓL", legend=:bottomright)
+p2 = plot(; xlabel="log10(ΓL / cm^-1)", ylabel="Voltage V (cm^-1)", title="Voltage vs ΓL", legend=:bottomleft)
+p3 = plot(; xlabel="log10(ΓL / cm^-1)", ylabel="Power P (cm^-2)", title="Power vs ΓL", legend=:bottomright)
 for d in datasets
     r = sorted_by(d.results, :ΓL)
     logΓL = log10.([x.ΓL for x in r])
@@ -48,8 +48,8 @@ panel = plot(p1, p2, p3; layout=(1, 3), size=(1500, 450))
 savefig(panel, joinpath(outdir, "gammaL_panel_confronto.png"))
 
 # --- I(V), P(V): points sorted by voltage so lines don't zigzag ---
-p4 = plot(; xlabel="Voltage V (cm^-1)", ylabel="Current I (cm^-1)", title="Corrente vs voltaggio", legend=:bottomleft)
-p5 = plot(; xlabel="Voltage V (cm^-1)", ylabel="Power P (cm^-2)", title="Potenza vs voltaggio", legend=:bottomleft)
+p4 = plot(; xlabel="Voltage V (cm^-1)", ylabel="Current I (cm^-1)", title="Current vs voltage", legend=:bottomleft)
+p5 = plot(; xlabel="Voltage V (cm^-1)", ylabel="Power P (cm^-2)", title="Power vs voltage", legend=:bottomleft)
 for d in datasets
     r = sorted_by(d.results, :V_dampf)
     V = [x.V_dampf for x in r]
