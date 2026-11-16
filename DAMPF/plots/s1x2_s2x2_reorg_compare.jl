@@ -6,7 +6,7 @@ default(fontfamily="Computer Modern", framestyle=:box, dpi=300)
 
 """
 Two families of figures for the reorganization-energy-rescaled s1x2_s2x2
-ω2 scan (see SPIEGAZIONI/SPIEGAZIONE_reorganization_energy_rescaling.md):
+ω2 scan (see SPIEGAZIONI/07c_scan_omega2_e_riscalamento_lambda.md):
 
 1. "Rescaled-only" figures, the exact analogue of the 4 figures already in
    the thesis for the unscaled scan (plots/s1x2_s2x2_freq_compare.jl) --

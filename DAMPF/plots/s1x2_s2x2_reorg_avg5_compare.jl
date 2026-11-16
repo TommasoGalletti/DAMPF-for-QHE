@@ -7,7 +7,7 @@ default(fontfamily="Computer Modern", framestyle=:box, dpi=300)
 """
 Same figure set as plots/s1x2_s2x2_reorg_compare.jl, but fed with the
 trailing-checkpoint-averaged reorg dataset instead of the raw final-step
-one (see SPIEGAZIONI/SPIEGAZIONE_reorganization_energy_rescaling.md,
+one (see SPIEGAZIONI/07c_scan_omega2_e_riscalamento_lambda.md,
 "de-noising" diagnostic): I_dampf at each (ω2,ΓL) is the mean of the last
 5 checkpoints (2500 steps) of the current observable, rather than the
 single final-step value, built from this session's already-logged
